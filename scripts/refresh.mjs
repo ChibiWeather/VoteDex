@@ -6,6 +6,7 @@ import { refreshVotes, buildVoteFiles } from "./lib/votes.mjs";
 import { refreshDonors } from "./lib/donors.mjs";
 import { refreshBills } from "./lib/bills.mjs";
 import { refreshStates } from "./lib/states.mjs";
+import { refreshPortraits } from "./lib/portraits.mjs";
 
 const key = process.env.DATA_GOV_API_KEY || "";
 const osKey = process.env.OPENSTATES_API_KEY || "";
@@ -23,6 +24,7 @@ else voteInfo = buildVoteFiles(members);
 
 if (want("bills")) { try { await refreshBills(members, voteInfo, key); if (key) stamp("bills"); } catch (e) { log(`bills failed: ${e.message}`); } }
 if (want("donors")) { try { await refreshDonors(members, key); if (key) stamp("donors"); } catch (e) { log(`donors failed: ${e.message}`); } }
+if (want("portraits")) { try { await refreshPortraits(members); } catch (e) { log(`portraits failed: ${e.message}`); } }
 if (want("states")) { try { await refreshStates(osKey); stamp("states"); } catch (e) { log(`states failed: ${e.message}`); } }
 
 writeJSON("meta.json", meta);

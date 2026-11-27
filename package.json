@@ -7,6 +7,7 @@
     "serve": "npx --yes http-server site -p 8080 -c-1"
   },
   "dependencies": {
-    "fast-xml-parser": "^4.5.0"
+    "fast-xml-parser": "^4.5.0",
+    "sharp": "^0.33.5"
   }
 }
