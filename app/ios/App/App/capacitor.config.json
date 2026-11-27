@@ -1,0 +1,12 @@
+{
+	"appId": "com.chibiweather.votedex",
+	"appName": "VoteDex",
+	"webDir": "www",
+	"backgroundColor": "#0e1320",
+	"ios": {
+		"contentInset": "never",
+		"backgroundColor": "#0e1320",
+		"limitsNavigationsToAppBoundDomains": false
+	},
+	"packageClassList": []
+}

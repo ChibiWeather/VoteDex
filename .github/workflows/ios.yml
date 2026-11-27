@@ -1,0 +1,94 @@
+name: Build iPhone app and send to App Store Connect
+
+# Builds VoteDex for iPhone on a Mac in GitHub's cloud and uploads it to
+# App Store Connect (TestFlight). Start it from the Actions tab with "Run workflow".
+#
+# Needs these repository secrets (Settings > Secrets and variables > Actions):
+#   APPLE_TEAM_ID              10-character Team ID from developer.apple.com > Membership
+#   ASC_KEY_ID                 App Store Connect API key ID
+#   ASC_ISSUER_ID              App Store Connect API issuer ID
+#   ASC_KEY_P8                 The full text of the downloaded AuthKey_XXXX.p8 file
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version people see in the App Store (e.g. 1.0)"
+        required: true
+        default: "1.0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios
+  cancel-in-progress: false
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Copy the site into the app
+        run: npm run sync
+      - name: Save the App Store Connect key
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          if [ -z "$ASC_KEY_P8" ]; then echo "::error::Add the ASC_KEY_P8 secret first."; exit 1; fi
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8"
+      - name: Build and sign
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          BUILD="$(date -u +%Y%m%d).${{ github.run_number }}"
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination generic/platform=iOS -archivePath "$RUNNER_TEMP/VoteDex.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" \
+            archive
+          test -d "$RUNNER_TEMP/VoteDex.xcarchive"
+      - name: Upload to App Store Connect
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/export.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/VoteDex.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/export.plist" -exportPath "$RUNNER_TEMP/out" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER"
+      - name: Clean up the key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
