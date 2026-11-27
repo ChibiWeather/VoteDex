@@ -44,8 +44,13 @@ async function memberDonors(m, key, cache) {
     const r = await fec(`/schedules/schedule_a/by_employer/`, { committee_id: committee, cycle, per_page: 100, sort: "-total" }, key);
     employers = (r.results || [])
       .filter(x => x.employer && !SKIP.test(x.employer.trim()))
-      .slice(0, 50)
-      .map(x => [titleCase(x.employer.trim()), Math.round(x.total), x.count]);
+      .reduce((acc, x) => {
+        // "Anthropic, PBC" and "Anthropic PBC" are the same employer
+        const k = x.employer.toUpperCase().replace(/[.,'&]/g, " ").replace(/\b(INC|LLC|LLP|LP|PBC|CORP|CORPORATION|CO|COMPANY|LTD|PLLC|PC|THE)\b/g, "").replace(/\s+/g, " ").trim();
+        const e = acc.get(k); if (e) { e[1] += x.total; e[2] += x.count; } else acc.set(k, [titleCase(x.employer.trim()), x.total, x.count]);
+        return acc;
+      }, new Map());
+    employers = [...employers.values()].sort((a, b) => b[1] - a[1]).slice(0, 50).map(([e, t, c]) => [e, Math.round(t), c]);
   }
   const n = v => Math.round(v || 0);
   const t = best;
