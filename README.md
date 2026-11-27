@@ -25,7 +25,9 @@ One api.data.gov key works for both Congress.gov and the FEC. The FEC allows abo
 2. **Turn on Pages.** Repo → Settings → Pages → Source: **GitHub Actions**.
 3. **Run it.** Actions tab → "Refresh data and publish" → Run workflow. The first run takes 20 to 40 minutes because it downloads every roll call of the current Congress.
 
-After that it runs daily at about 5 AM Eastern.
+After that it runs every morning at about 5 AM Eastern, plus a donors-only run at about 5 PM.
+
+**How fresh is donor money?** Each member's FEC data is re-checked every week, and every day from Aug 1 to Dec 15 of election years (3 months before the general election through the post-general report) and for 10 days after each quarterly FEC deadline (Jan 31, Apr 15, Jul 15, Oct 15). Member pages show which filing the numbers come from.
 
 ## Run locally
 
