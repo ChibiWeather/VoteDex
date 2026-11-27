@@ -110,6 +110,7 @@ dl.terms dd{margin:2px 0 0}
 .pick select{margin:0;width:auto;min-width:180px}
 .addr{display:flex;gap:8px;margin:6px 0}
 .addr input{flex:1;font:inherit;font-size:16px;padding:10px 12px;background:var(--panel);color:var(--ink);border:2px solid var(--line)}
+.more summary{list-style:none;cursor:pointer}.more summary::-webkit-details-marker{display:none}.more[open] summary{display:none}
 .contact{margin:8px 0}
 .contact summary{font-family:"Press Start 2P",monospace;font-size:11px;color:var(--y);padding:6px 0}
 .contact textarea{width:100%;margin-top:10px;font:inherit;font-size:16px;padding:10px;background:var(--panel);color:var(--ink);border:2px solid var(--line)}
@@ -411,8 +412,9 @@ async function member(id){
     <div><b>${money(T.raised)}</b><span>Raised</span></div><div><b>${money(T.small)}</b><span>Small gifts (under $200)</span></div><div><b>${money(T.large)}</b><span>Larger gifts from people</span></div>
     <div><b>${money(T.pacs)}</b><span>From PACs</span></div><div><b>${money(T.party+T.self)}</b><span>From party and self</span></div><div><b>${money(T.cash)}</b><span>Cash on hand</span></div></div>
    <p class="hint" style="font-size:14px;margin-top:8px">${dn.cycle-1}–${dn.cycle} campaign${T.through?", through "+fmtD(T.through):""}. From FEC filings.</p>
-   <h2>TOP DONOR EMPLOYERS</h2>${dn.employers.length?`<div class="log">${dn.employers.slice(0,10).map(([e,t,c])=>`<div class="row"><span>${esc(e)}<small>${c} gift${c===1?"":"s"}</small></span><span class="tag o" style="color:var(--y)">${money(t)}</span></div>`).join("")}</div>
-   <p class="hint" style="font-size:14px;margin-top:8px">Money from people who listed this employer on their donation. Companies can't give to candidates directly.</p>`:`<div class="empty">No employer details filed for this campaign yet.</div>`}`
+   <h2>TOP DONORS BY EMPLOYER</h2>${dn.employers.length?(()=>{const row=([e,t,c],i)=>`<div class="row"><span>${i+1}. ${esc(e)}<small>${c} gift${c===1?"":"s"}</small></span><span class="tag o" style="color:var(--y)">${money(t)}</span></div>`;const top=dn.employers.slice(0,5),rest=dn.employers.slice(5);
+    return`<div class="log">${top.map(row).join("")}</div>${rest.length?`<details class="more"><summary class="btn">SEE ALL ${dn.employers.length} ›</summary><div class="log" style="margin-top:10px">${rest.map((x,i)=>row(x,i+5)).join("")}</div></details>`:""}
+   <p class="hint" style="font-size:14px;margin-top:8px">Money from people who listed this employer on their donation. Companies can't give to candidates directly.</p>`})():`<div class="empty">No employer details filed for this campaign yet.</div>`}`
   :`<div class="empty">${m.fec?"Not loaded yet. Donor data fills in over the next few days.":"No FEC campaign found for this member."}</div>`}
   <div class="links">${m.fec?`<a href="https://www.fec.gov/data/candidate/${esc(m.fec)}/">FEC filings ↗</a>`:""}${m.os?`<a href="https://www.opensecrets.org/members-of-congress/summary?cid=${esc(m.os)}">OpenSecrets ↗</a>`:""}</div>
   <h2>CONTACT</h2>${contactBox(m,null)}

@@ -35,10 +35,10 @@ async function memberDonors(m, key, cache) {
   const cycle = t ? t.cycle : currentCycle();
   let employers = [];
   if (committee) {
-    const r = await fec(`/schedules/schedule_a/by_employer/`, { committee_id: committee, cycle, per_page: 40, sort: "-total" }, key);
+    const r = await fec(`/schedules/schedule_a/by_employer/`, { committee_id: committee, cycle, per_page: 100, sort: "-total" }, key);
     employers = (r.results || [])
       .filter(x => x.employer && !SKIP.test(x.employer.trim()))
-      .slice(0, 12)
+      .slice(0, 50)
       .map(x => [titleCase(x.employer.trim()), Math.round(x.total), x.count]);
   }
   const n = v => Math.round(v || 0);

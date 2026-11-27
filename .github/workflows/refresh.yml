@@ -23,6 +23,8 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main   # always the newest data, even on a queued run
       - uses: actions/setup-node@v4
         with:
           node-version: 22
