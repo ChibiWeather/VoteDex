@@ -72,12 +72,28 @@ function titleCase(s) {
   return s.toLowerCase().replace(/[a-z0-9&'.-]+/g, w => KEEP_UPPER.test(w.toUpperCase()) ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1));
 }
 
+// How old a member's donor data may get before we fetch it again.
+// Daily from Aug 1 to Dec 15 of an election year (3 months before the general
+// election through the post-general report), and for 10 days after each
+// regular FEC deadline. Weekly the rest of the time.
+const DEADLINES = ["01-31", "04-15", "07-15", "10-15"];
+export function maxAgeDays(d = new Date()) {
+  const y = d.getUTCFullYear(), md = d.toISOString().slice(5, 10);
+  if (y % 2 === 0 && md >= "08-01" && md <= "12-15") return 1;
+  for (const dl of DEADLINES) {
+    const t = new Date(`${y}-${dl}T00:00:00Z`), days = (d - t) / 864e5;
+    if (days >= 0 && days <= 10) return 1;
+  }
+  return 7;
+}
+
 export async function refreshDonors(members, key, { budget = 850 } = {}) {
   if (!key) { log("donors: no DATA_GOV_API_KEY set, skipping"); return; }
   setBudget(HOST, budget, 1200);
   const status = readJSON("donors/_status.json", {});
   // Oldest first; never-fetched members go first of all.
-  const queue = members.filter(m => m.fec).sort((a, b) => (status[a.id]?.at || "").localeCompare(status[b.id]?.at || ""));
+  const maxAge = maxAgeDays() * 864e5 - 2 * 3600e3; // a little slack so a daily run always counts
+  const queue = members.filter(m => (m.fec || (m.fecs || []).length) && (!status[m.id]?.at || status[m.id].err || Date.now() - new Date(status[m.id].at) > maxAge)).sort((a, b) => (status[a.id]?.at || "").localeCompare(status[b.id]?.at || ""));
   let done = 0, failed = 0;
   const stopAt = Date.now() + 30 * 60e3; // never hold up the daily run for long
   for (const m of queue) {
@@ -95,5 +111,5 @@ export async function refreshDonors(members, key, { budget = 850 } = {}) {
     }
   }
   writeJSON("donors/_status.json", status);
-  log(`donors: refreshed ${done}, failed ${failed}, ${queue.length} members have FEC ids`);
+  log(`donors: refreshed ${done}, failed ${failed}, ${queue.length} were due (refresh every ${maxAgeDays()} day(s))`);
 }
