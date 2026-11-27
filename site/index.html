@@ -107,9 +107,6 @@ dl.terms dd{margin:2px 0 0}
 .cty{margin:6px 0}
 .cty summary{font-weight:700}
 .cty .roster{margin-top:10px}
-.pick{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}
-.pick label{display:grid;gap:4px;font-size:14px;color:var(--mute)}
-.pick select{margin:0;width:auto;min-width:180px}
 .addr{display:flex;gap:8px;margin:6px 0}
 .addr input{flex:1;font:inherit;font-size:16px;padding:10px 12px;background:var(--panel);color:var(--ink);border:2px solid var(--line)}
 .more summary{list-style:none;cursor:pointer}.more summary::-webkit-details-marker{display:none}.more[open] summary{display:none}
@@ -294,48 +291,42 @@ async function legislator(st,i){
 }
 // ---- my reps ----
 function myReps(){
-  const s=store.home,me=store.me||{};if(!s)return"";
+  const s=store.home,me=store.me||{};if(!s)return`<h2>YOUR REPS</h2>${findForm()}`;
   const hs=M.filter(m=>m.s===s&&m.c==="r").sort((a,b)=>a.d-b.d),ss=M.filter(m=>m.s===s&&m.c==="s");
   const myH=hs.find(m=>String(m.d)===String(me.cd))||(hs.length===1?hs[0]:null);
-  const maybe=!myH&&(me.cds||[]).length?hs.filter(m=>me.cds.includes(String(m.d))):[];
   let stateHTML="";
-  if(SLS[s]&&SL&&SL.st===s){const sd=[...new Set(SL.rows.filter(r=>r.c==="S").map(r=>r.d))].sort((a,b)=>a-b),hd=[...new Set(SL.rows.filter(r=>r.c==="H").map(r=>r.d))].sort();
-    const mySen=SL.rows.filter(r=>r.c==="S"&&r.d===me.ssd),myRep=SL.rows.filter(r=>r.c==="H"&&r.d===me.shd);
-    stateHTML=`<div class="pick"><label>State senate district<select id="ssd"><option value="">Pick</option>${sd.map(d=>`<option ${d===me.ssd?"selected":""}>${d}</option>`).join("")}</select></label>
-    <label>State house district<select id="shd"><option value="">Pick</option>${hd.map(d=>`<option ${d===me.shd?"selected":""}>${esc(d)}</option>`).join("")}</select></label></div>
-    ${mySen.length||myRep.length?`<div class="roster">${mySen.concat(myRep).map(slTile).join("")}</div>`:""}`}
+  if(SLS[s]&&SL&&SL.st===s){const mySen=SL.rows.filter(r=>r.c==="S"&&same(r.d,me.ssd)),myRep=SL.rows.filter(r=>r.c==="H"&&same(r.d,me.shd));
+    stateHTML=mySen.length||myRep.length?`<div class="roster">${mySen.concat(myRep).map(slTile).join("")}</div>`:`<p class="hint">We couldn't match your state lawmakers from this ZIP. Try your street address above.</p>`}
   else if(!SLS[s])stateHTML=`<p class="hint">State lawmakers for ${esc(SN[s])} aren't loaded yet.</p>`;
   return`<h2>YOUR REPS</h2>
   ${findForm()}
-  ${maybe.length?`<p class="hint" style="margin-top:8px">ZIP ${esc(me.zip)} is split between ${maybe.length} House districts, so both possible reps are shown. For an exact match, use your street address.</p>`:""}
-  <div class="pick">${hs.length>1?`<label>U.S. House district<select id="cd"><option value="">Pick</option>${hs.map(m=>`<option value="${m.d}" ${String(m.d)===String(me.cd)?"selected":""}>District ${m.d}</option>`).join("")}</select></label>`:""}</div>
-  <div class="roster">${ss.concat(myH?[myH]:maybe).map(tile).join("")}</div>${stateHTML}`;
+  ${me.where?`<p class="hint" style="margin-top:8px">Showing reps for ${esc(me.where)}.</p>`:""}
+  <div class="roster">${ss.concat(myH?[myH]:[]).map(tile).join("")}</div>${stateHTML}`;
 }
-// Find reps by ZIP (main) or street address (exact). The ZIP table is built from Census files.
+const same=(a,b)=>b!=null&&b!==""&&String(a).toLowerCase().replace(/[^a-z0-9]/g,"")===String(b).toLowerCase().replace(/[^a-z0-9]/g,"");
+// Find reps by ZIP (main) or street address (exact). The ZIP table is built from Census files:
+// each ZIP lists its districts, and when it crosses a line we use the one covering most of it.
 const findForm=()=>{const me=store.me||{};return`<form id="zipf" class="addr"><input id="zipIn" placeholder="Your ZIP code" inputmode="numeric" maxlength="5" autocomplete="postal-code" value="${esc(me.zip||"")}"><button class="vbtn" type="submit">FIND</button></form>
   <div id="zipMsg" class="hint" hidden></div>
-  <details class="more2" ${store.zipSplit?"open":""}><summary class="hint" style="cursor:pointer;font-size:15px">Use your street address instead</summary>
+  <details class="more2"><summary class="hint" style="cursor:pointer;font-size:14px">${store.home?"Not right? Use your street address":"Or use your street address"}</summary>
   <form id="addr" class="addr"><input id="addrIn" placeholder="Street address, town, state" autocomplete="street-address"><button class="vbtn" type="submit">FIND</button></form>
   <div id="addrMsg" class="hint" hidden></div></details>`};
-async function zipLookup(z){const d=await J(`data/zip/${z.slice(0,3)}.json`);return d&&d[z]||null}
+async function zipLookup(z){const d=await J(`data/zip/${z.slice(0,3)}.json`);const e=d&&d[z];if(!e)return null;return Array.isArray(e)?{c:e}:e}
 function wireReps(){
   const zf=document.getElementById("zipf");
   if(zf)zf.onsubmit=async e=>{e.preventDefault();const m=document.getElementById("zipMsg"),z=document.getElementById("zipIn").value.replace(/\D/g,"");m.hidden=false;
     if(z.length!==5){m.textContent="Type a 5-digit ZIP code.";return}
-    m.textContent="Looking up your ZIP…";const list=await zipLookup(z);
-    if(!list){m.textContent="We couldn't find that ZIP. Try your street address below.";const d=document.querySelector(".more2");if(d)d.open=true;return}
-    const st=list[0][0],cds=[...new Set(list.filter(x=>x[0]===st).map(x=>String(x[1])))];
-    store.home=st;store.me={zip:z,cd:cds.length===1?cds[0]:"",cds:cds.length>1?cds:[]};store.zipSplit=cds.length>1;save();
+    m.textContent="Looking up your ZIP…";const hit=await zipLookup(z);
+    if(!hit||!hit.c||!hit.c.length){m.textContent="We couldn't find that ZIP. Try your street address below.";const d=document.querySelector(".more2");if(d)d.open=true;return}
+    const top=hit.c[0];
+    store.home=top[0];store.me={zip:z,cd:String(top[1]),ssd:hit.u||"",shd:hit.l||"",where:"ZIP "+z};save();
     if(location.hash!=="#ballot")location.hash="ballot";else ballot()};
   const f=document.getElementById("addr");if(!f)return;
   f.onsubmit=async e=>{e.preventDefault();const m=document.getElementById("addrMsg"),a=document.getElementById("addrIn").value.trim();m.hidden=false;if(!a){m.textContent="Type your street address, town and state.";return}
     m.textContent="Looking up your districts…";
     try{const r=await findDistricts(a);if(!r){m.textContent="Couldn't find that address. Try adding the town and ZIP code.";return}
-      store.home=r.st;store.me=Object.assign(store.me||{},{cd:r.cd,cds:[],ssd:r.ssd,shd:r.shd,addr:r.label});store.zipSplit=false;save();ballot();
-      const m2=document.getElementById("addrMsg");if(m2){m2.hidden=false;m2.textContent="Found: "+r.label+". Your districts are filled in below."}}
-    catch(err){m.textContent="The address service didn't answer. Try again, or pick your districts below. They're on your voter registration card."}};
-  const set=(id,k)=>{const el=document.getElementById(id);if(el)el.onchange=()=>{store.me=Object.assign(store.me||{},{[k]:el.value},k==="cd"?{cds:[]}:{});if(k==="cd")store.zipSplit=false;save();ballot()}};
-  set("cd","cd");set("ssd","ssd");set("shd","shd");
+      store.home=r.st;store.me=Object.assign(store.me||{},{cd:r.cd,ssd:r.ssd,shd:r.shd,addr:r.label,where:r.label});save();ballot()}
+    catch(err){m.textContent="The address service didn't answer. Try again in a minute, or use your ZIP code."}};
 }
 // Census Bureau geocoder (free, no key). JSONP so it works from a static site.
 function geocode(addr){return new Promise((res,rej)=>{const cb="gc"+Date.now(),s=document.createElement("script");const done=()=>{clearTimeout(t);delete window[cb];s.remove()};const t=setTimeout(()=>{done();rej(new Error("timeout"))},15000);window[cb]=d=>{done();res(d)};s.onerror=()=>{done();rej(new Error("load"))};s.src="https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?"+new URLSearchParams({address:addr,benchmark:"Public_AR_Current",vintage:"Current_Current",format:"jsonp",callback:cb});document.head.appendChild(s)})}
@@ -361,16 +352,16 @@ function ballot(){
   const s=store.home,voted=Object.keys(store.v).length;
   if(!s){app.innerHTML=`<h1>How would you vote?</h1><p class="hint">Find your reps, then vote on each bill and see who agrees with you.</p>
    ${findForm()}
-   <select id="hs"><option value="">Or just pick your state</option>${Object.entries(SN).sort((a,b)=>a[1].localeCompare(b[1])).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select>`;
-   document.getElementById("hs").onchange=e=>{store.home=e.target.value;save();ballot()};wireReps();return}
+   `;
+   wireReps();return}
   const del=delegation(s);
-  app.innerHTML=`<h1>How would you vote?</h1><p class="hint">${esc(SN[s])} · ${voted} of ${BILLS.length} voted · <a href="#" id="chg">change state</a> · <a href="#" id="clr">reset</a></p>
+  app.innerHTML=`<h1>How would you vote?</h1><p class="hint">${esc(SN[s])} · ${voted} of ${BILLS.length} voted · <a href="#" id="chg">change ZIP</a> · <a href="#" id="clr">reset</a></p>
   ${myReps()}
   <h2>DO THEY AGREE WITH YOU?</h2><div class="score">${del.map(scoreRow).join("")}</div>
   <p class="hint" style="font-size:14px;margin-top:10px">Scores use each member's final Yes or No vote on the bill, from the official House and Senate roll calls.</p>
   <h2>TOPICS I FOLLOW</h2>${topicChips()}
   <h2>THE BILLS</h2><div class="log">${BILLS.filter(b=>follows(b.id)).map(b=>`<div class="ballot"><div><div class="t">${esc(b.short)}</div><div class="hint" style="margin:4px 0 0">${esc(b.one)}</div></div><div class="vb-wrap" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${vbtns(b)}<a href="#b-${b.id}" style="margin-left:auto">Read more ›</a></div></div>`).join("")}</div>`;
-  document.getElementById("chg").onclick=e=>{e.preventDefault();store.home="";save();ballot()};
+  document.getElementById("chg").onclick=e=>{e.preventDefault();store.home="";store.me={};save();ballot()};
   document.getElementById("clr").onclick=e=>{e.preventDefault();store.v={};save();ballot()};
   const re=()=>{const y=scrollY;ballot();scrollTo(0,y)};wireVotes(re);wireTopics(re);wireReps();
   if(SLS[s]&&!(SL&&SL.st===s))loadSL(s).then(re);
