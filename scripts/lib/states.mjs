@@ -67,8 +67,8 @@ async function refreshStateVotes(st, key) {
         for (const p of v.votes) { const pid = p.voter?.id; if (pid) (store.people[pid] = store.people[pid] || {})[v.id] = opt(p.option); }
         newOnPage++; added++;
       }
-      if (known && !newOnPage) break; // reached votes we already have
-      if (page >= (r.pagination?.max_page || 1)) break;
+      if (store.full && known && !newOnPage) break; // caught up with votes we already have
+      if (page >= (r.pagination?.max_page || 1)) { store.full = true; break; }
     }
   } catch (e) { if (!(e instanceof OutOfBudget)) log(`${st} votes: ${e.message}`); }
   writeJSON(`${st}_votes.json`, store);
