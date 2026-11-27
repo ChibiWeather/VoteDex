@@ -28,6 +28,7 @@ const budgets = new Map();
 export function setBudget(host, max, gapMs = 0) { budgets.set(host, { left: max, gapMs, last: 0 }); }
 export function budgetLeft(host) { return budgets.get(host)?.left ?? Infinity; }
 export class OutOfBudget extends Error {}
+export class RateLimited extends OutOfBudget {}
 
 export async function get(url, { type = "json", headers = {}, tries = 4, okMissing = false } = {}) {
   const host = new URL(url).host;
@@ -48,6 +49,8 @@ export async function get(url, { type = "json", headers = {}, tries = 4, okMissi
     }
     if (res.ok) return type === "json" ? res.json() : res.text();
     if (okMissing && res.status === 404) return null;
+    // An hourly limit won't clear with a short wait: stop and let the next run continue.
+    if (res.status === 429 && /api\.open\.fec\.gov|api\.congress\.gov|openstates/.test(host)) throw new RateLimited(host);
     if (res.status === 429 || res.status >= 500) {
       if (i === tries) throw new Error(`${res.status} ${redact(url)}`);
       const ra = +res.headers.get("retry-after") || 0;

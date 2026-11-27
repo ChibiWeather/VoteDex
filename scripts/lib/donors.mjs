@@ -79,15 +79,16 @@ export async function refreshDonors(members, key, { budget = 850 } = {}) {
   // Oldest first; never-fetched members go first of all.
   const queue = members.filter(m => m.fec).sort((a, b) => (status[a.id]?.at || "").localeCompare(status[b.id]?.at || ""));
   let done = 0, failed = 0;
+  const stopAt = Date.now() + 30 * 60e3; // never hold up the daily run for long
   for (const m of queue) {
-    if (budgetLeft(HOST) < 3) break;
+    if (budgetLeft(HOST) < 3 || Date.now() > stopAt) break;
     try {
       const d = await memberDonors(m, key, status[m.id] || {});
       if (d) writeJSON(`donors/${m.id}.json`, d);
       status[m.id] = { at: new Date().toISOString(), cand: d?.cand || null, committee: d?.committee || null };
       done++;
     } catch (e) {
-      if (e instanceof OutOfBudget) break;
+      if (e instanceof OutOfBudget) { if (e.constructor.name === "RateLimited") log("donors: FEC hourly limit reached, continuing next run"); break; }
       if (/^(401|403)/.test(e.message)) { log("donors: the API key was rejected (check the DATA_GOV_API_KEY secret)"); break; }
       status[m.id] = { ...(status[m.id] || {}), at: new Date().toISOString(), err: e.message.slice(0, 400) };
       failed++;
