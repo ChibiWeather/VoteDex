@@ -262,8 +262,8 @@ function delegation(s){return M.filter(m=>m.s===s).sort((a,b)=>(a.c===b.c?(a.d||
 
 // ---- state legislatures (Open States) ----
 let SL=null;const SLS={NH:"data/nh_legislature.json"};
-async function loadSL(st){if(!SLS[st])return null;if(SL&&SL.st===st)return SL;const d=await (await fetch(SLS[st])).json();SL={st,rows:d.map((r,i)=>({i,n:r[0],p:r[1],d:r[2],c:r[3],em:r[4]||"",ph:r[5]||"",os:r[6]||""}))};return SL}
-const slTile=r=>`<a class="pl" href="#l-${SL.st}-${r.i}"><span class="num">${esc(r.c==="S"?r.d:r.d.replace(/^\D+/,""))}</span>${face(SIL,r.p,r.n)}<b>${esc(r.n)}</b>${r.c==="H"?`<small class="hint" style="margin:0;font-size:13px">${esc(r.d)}</small>`:""}</a>`;
+async function loadSL(st){if(!SLS[st])return null;if(SL&&SL.st===st)return SL;const d=await (await fetch(SLS[st])).json();const ph=new Set(await J(`data/${st.toLowerCase()}_photos.json`)||[]);SL={st,ph,rows:d.map((r,i)=>({i,n:r[0],p:r[1],d:r[2],c:r[3],em:r[4]||"",ph:r[5]||"",os:r[6]||"",img:ph.has((r[6]||"").replace("ocd-person/",""))?`img/s/${(r[6]||"").replace("ocd-person/","")}.jpg`:SIL}))};return SL}
+const slTile=r=>`<a class="pl" href="#l-${SL.st}-${r.i}"><span class="num">${esc(r.c==="S"?r.d:r.d.replace(/^\D+/,""))}</span>${face(r.img||SIL,r.p,r.n)}<b>${esc(r.n)}</b>${r.c==="H"?`<small class="hint" style="margin:0;font-size:13px">${esc(r.d)}</small>`:""}</a>`;
 async function stateLeg(s,el){
   if(!SLS[s]){el.innerHTML=`<div class="empty">${esc(SN[s])}'s legislature isn't loaded yet. New Hampshire is first; other states can be added the same way. <div class="links"><a href="https://open.pluralpolicy.com/${s.toLowerCase()}/legislators/">See them on Open States ↗</a></div></div>`;return}
   const L=await loadSL(s),sen=L.rows.filter(r=>r.c==="S").sort((a,b)=>+a.d-+b.d),hou=L.rows.filter(r=>r.c==="H");
@@ -282,7 +282,7 @@ async function legislator(st,i){
   const SV=cache.s[st]||(cache.s[st]=J(`data/${st.toLowerCase()}_votes.json`));const sv=await SV;
   const mine=sv&&r.os&&sv.people[r.os]?Object.entries(sv.people[r.os]).map(([id,k])=>({v:sv.votes[id],k})).filter(x=>x.v).sort((a,b)=>b.v.date.localeCompare(a.v.date)):[];
   const cast=mine.filter(x=>x.k==="Y"||x.k==="N").length;
-  app.innerHTML=`<div class="card"><div class="top">${face(SIL,r.p,r.n)}<div><div class="nm">${esc(r.n)}</div><div class="pos">${PN[r.p]} · State ${r.c==="S"?"senator":"rep"} · ${esc(SN[st])}</div></div><div class="jersey">${esc(r.c==="S"?r.d:r.d.replace(/^\D+/,""))}<small>${r.c==="S"?"DIST":esc(r.d.replace(/\s*\d+$/,"").toUpperCase())}</small></div></div>
+  app.innerHTML=`<div class="card"><div class="top">${face(r.img||SIL,r.p,r.n)}<div><div class="nm">${esc(r.n)}</div><div class="pos">${PN[r.p]} · State ${r.c==="S"?"senator":"rep"} · ${esc(SN[st])}</div></div><div class="jersey">${esc(r.c==="S"?r.d:r.d.replace(/^\D+/,""))}<small>${r.c==="S"?"DIST":esc(r.d.replace(/\s*\d+$/,"").toUpperCase())}</small></div></div>
   <div class="stats"><div>${mine.length?`<b>${mine.length}</b>`:na}<span>Roll calls this session</span></div><div>${mine.length?`<b>${mine.length-cast}</b>`:na}<span>Missed or present</span></div><div>${na}<span>Bills sponsored</span></div></div></div>
   ${r.em||r.ph?`<h2>CONTACT</h2><div class="links">${r.em?`<a href="mailto:${esc(r.em)}">${esc(r.em)}</a>`:""}${r.ph?`<a href="tel:${esc(r.ph)}">Call ${esc(r.ph)}</a>`:""}</div>`:""}
   <h2>RECENT VOTES</h2>${mine.length?`<div class="log">${mine.slice(0,15).map(({v,k})=>`<div class="row"><span>${esc(v.bill)}: ${esc(v.title.length>90?v.title.slice(0,88)+"…":v.title)}<small>${esc(plainNH(v.q))}${v.result?" · "+(/pass/i.test(v.result)?"passed":"failed"):""} · ${fmtD(v.date)}</small></span><span class="tag ${TAG[k][1]}">${TAG[k][0]}</span></div>`).join("")}</div>`:`<div class="empty">No recorded votes loaded yet. Many New Hampshire votes are voice votes with no names attached.</div>`}
@@ -303,7 +303,7 @@ function myReps(){
   ${me.where?`<p class="hint" style="margin-top:8px">Showing reps for ${esc(me.where)}.</p>`:""}
   <div class="roster">${ss.concat(myH?[myH]:[]).map(tile).join("")}</div>${stateHTML}`;
 }
-const same=(a,b)=>b!=null&&b!==""&&String(a).toLowerCase().replace(/[^a-z0-9]/g,"")===String(b).toLowerCase().replace(/[^a-z0-9]/g,"");
+const dn=x=>String(x).toLowerCase().replace(/[^a-z0-9]/g," ").replace(/\b0+(\d)/g,"$1").replace(/\s+/g,""),same=(a,b)=>b!=null&&b!==""&&dn(a)===dn(b);
 // Find reps by ZIP (main) or street address (exact). The ZIP table is built from Census files:
 // each ZIP lists its districts, and when it crosses a line we use the one covering most of it.
 const findForm=()=>{const me=store.me||{};return`<form id="zipf" class="addr"><input id="zipIn" placeholder="Your ZIP code" inputmode="numeric" maxlength="5" autocomplete="postal-code" value="${esc(me.zip||"")}"><button class="vbtn" type="submit">FIND</button></form>

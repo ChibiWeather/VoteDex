@@ -1,5 +1,6 @@
 // State legislatures from Open States. Members come from the free bulk CSV (no key).
 // Votes need a free Open States API key (OPENSTATES_API_KEY); without it they are skipped.
+import { refreshStatePhotos } from "./portraits.mjs";
 import { get, log, readJSON, writeJSON, setBudget, party, OutOfBudget } from "./util.mjs";
 
 export const STATES = ["nh"];
@@ -21,7 +22,9 @@ function parseCSV(text) {
 
 async function refreshPeople(st) {
   const csv = await get(`https://data.openstates.org/people/current/${st}.csv`, { type: "text" });
-  const rows = parseCSV(csv).map(r => [
+  const people = parseCSV(csv);
+  try { await refreshStatePhotos(st, people); } catch (e) { log(`${st} photos failed: ${e.message}`); }
+  const rows = people.map(r => [
     r.name, party(r.current_party), r.current_district, r.current_chamber === "upper" ? "S" : "H",
     r.email || "", r.capitol_voice || r.district_voice || "", r.id,
   ]).sort((a, b) => a[0].localeCompare(b[0]));

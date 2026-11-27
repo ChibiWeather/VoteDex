@@ -46,7 +46,7 @@ async function sldTractFile(kind) {
 export function sldName(label, code) {
   let s = (label || "").replace(/\b(State|House|Senate|Assembly|Legislative|Representative|Delegate|District|Subdistrict)\b/gi, "").replace(/\(\d{4}\)/g, "").replace(/\s+/g, " ").trim();
   if (!s) s = (code || "").replace(/^0+/, "");
-  if (/^0*\d+$/.test(s)) s = String(parseInt(s, 10));
+  s = s.replace(/\b0+(\d)/g, "$1");
   return s;
 }
 
