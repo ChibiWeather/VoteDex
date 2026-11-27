@@ -24,15 +24,21 @@ async function principalCommittee(cand, key) {
   return c ? c.committee_id : null;
 }
 
-async function memberDonors(m, key, cache) {
-  const cand = m.fec;
-  if (!cand) return null;
-  let committee = cache.committee;
+export async function memberDonors(m, key, cache) {
+  // A member can have several FEC ids (e.g. a House member now running for Senate).
+  // Use the one with money in the most recent two-year cycle.
+  const ids = [...new Set([...(m.fecs || []), m.fec].filter(Boolean))];
+  if (!ids.length) return null;
+  let best = null;
+  for (const id of ids) {
+    const r = await fec(`/candidate/${id}/totals/`, { election_full: false, sort: "-cycle", per_page: 2 }, key);
+    const row = (r.results || []).find(x => x.cycle && (x.receipts || 0) > 0);
+    if (row && (!best || row.cycle > best.cycle || (row.cycle === best.cycle && row.receipts > best.receipts))) best = row;
+  }
+  const cand = best ? best.candidate_id : (m.fec || ids[ids.length - 1]);
+  let committee = cache.cand === cand ? cache.committee : null;
   if (!committee) committee = await principalCommittee(cand, key);
-  // Latest totals across cycles; the first row is the most recent cycle with filings.
-  const tot = await fec(`/candidate/${cand}/totals/`, { per_page: 3, sort: "-cycle" }, key);
-  const t = (tot.results || [])[0] || null;
-  const cycle = t ? t.cycle : currentCycle();
+  const cycle = best ? best.cycle : currentCycle();
   let employers = [];
   if (committee) {
     const r = await fec(`/schedules/schedule_a/by_employer/`, { committee_id: committee, cycle, per_page: 100, sort: "-total" }, key);
@@ -42,10 +48,10 @@ async function memberDonors(m, key, cache) {
       .map(x => [titleCase(x.employer.trim()), Math.round(x.total), x.count]);
   }
   const n = v => Math.round(v || 0);
+  const t = best;
   return {
     asOf: new Date().toISOString().slice(0, 10),
-    cycle,
-    committee,
+    cycle, cand, committee,
     totals: t ? {
       raised: n(t.receipts),
       small: n(t.individual_unitemized_contributions),
@@ -78,7 +84,7 @@ export async function refreshDonors(members, key, { budget = 850 } = {}) {
     try {
       const d = await memberDonors(m, key, status[m.id] || {});
       if (d) writeJSON(`donors/${m.id}.json`, d);
-      status[m.id] = { at: new Date().toISOString(), committee: d?.committee || null };
+      status[m.id] = { at: new Date().toISOString(), cand: d?.cand || null, committee: d?.committee || null };
       done++;
     } catch (e) {
       if (e instanceof OutOfBudget) break;

@@ -25,6 +25,7 @@ export async function refreshMembers() {
       fec: fecIds[fecIds.length - 1] || (r.id.fec || []).slice(-1)[0] || "",
       os: r.id.opensecrets || "",
       gt: r.id.govtrack || null,
+      fecs: r.id.fec || [],
     };
     if (c === "s") { m.rk = t.state_rank || ""; m.lis = r.id.lis || ""; }
     else m.d = t.district;
