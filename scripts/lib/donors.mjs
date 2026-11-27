@@ -1,0 +1,92 @@
+// Campaign money from the FEC (api.open.fec.gov, uses the api.data.gov key).
+// Writes data/donors/<bioguide>.json. The FEC allows about 1,000 requests an hour,
+// so each run refreshes the members whose data is oldest, within a fixed budget.
+import { get, log, readJSON, writeJSON, setBudget, budgetLeft, OutOfBudget } from "./util.mjs";
+
+const API = "https://api.open.fec.gov/v1";
+const HOST = "api.open.fec.gov";
+// Lines that say nothing about who the donor works for.
+const SKIP = /^(N\/?A|NONE|NOT EMPLOYED|UNEMPLOYED|RETIRED|SELF[- ]?EMPLOYED|SELF|HOMEMAKER|INFORMATION REQUESTED.*|REQUESTED|STUDENT|DISABLED|\s*)$/i;
+
+export function currentCycle(d = new Date()) {
+  const y = d.getUTCFullYear();
+  return y % 2 ? y + 1 : y;
+}
+
+async function fec(path, params, key) {
+  const q = new URLSearchParams({ ...params, api_key: key });
+  return get(`${API}${path}?${q}`);
+}
+
+async function principalCommittee(cand, key) {
+  const r = await fec(`/candidate/${cand}/committees/`, { designation: "P", per_page: 5 }, key);
+  const c = (r.results || []).sort((a, b) => (b.last_file_date || "").localeCompare(a.last_file_date || ""))[0];
+  return c ? c.committee_id : null;
+}
+
+async function memberDonors(m, key, cache) {
+  const cand = m.fec;
+  if (!cand) return null;
+  let committee = cache.committee;
+  if (!committee) committee = await principalCommittee(cand, key);
+  // Latest totals across cycles; the first row is the most recent cycle with filings.
+  const tot = await fec(`/candidate/${cand}/totals/`, { per_page: 3, sort: "-cycle" }, key);
+  const t = (tot.results || [])[0] || null;
+  const cycle = t ? t.cycle : currentCycle();
+  let employers = [];
+  if (committee) {
+    const r = await fec(`/schedules/schedule_a/by_employer/`, { committee_id: committee, cycle, per_page: 40, sort: "-total" }, key);
+    employers = (r.results || [])
+      .filter(x => x.employer && !SKIP.test(x.employer.trim()))
+      .slice(0, 12)
+      .map(x => [titleCase(x.employer.trim()), Math.round(x.total), x.count]);
+  }
+  const n = v => Math.round(v || 0);
+  return {
+    asOf: new Date().toISOString().slice(0, 10),
+    cycle,
+    committee,
+    totals: t ? {
+      raised: n(t.receipts),
+      small: n(t.individual_unitemized_contributions),
+      large: n(t.individual_itemized_contributions),
+      pacs: n(t.other_political_committee_contributions),
+      party: n(t.political_party_committee_contributions),
+      self: n((t.candidate_contribution || 0) + (t.loans_made_by_candidate || 0)),
+      spent: n(t.disbursements),
+      cash: n(t.last_cash_on_hand_end_period),
+      through: (t.coverage_end_date || "").slice(0, 10),
+    } : null,
+    employers,
+  };
+}
+
+const KEEP_UPPER = /^(LLC|LLP|LP|INC|PAC|USA|US|UBS|IBM|AT&T|BNSF|CVS|UPS|NBC|CBS|ABC|GE|JP|DC|NH|NY|II|III|IV|AFL-CIO|SEIU|AFSCME|NEA|UAW|IBEW)$/;
+function titleCase(s) {
+  return s.toLowerCase().replace(/[a-z0-9&'.-]+/g, w => KEEP_UPPER.test(w.toUpperCase()) ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1));
+}
+
+export async function refreshDonors(members, key, { budget = 850 } = {}) {
+  if (!key) { log("donors: no DATA_GOV_API_KEY set, skipping"); return; }
+  setBudget(HOST, budget, 1200);
+  const status = readJSON("donors/_status.json", {});
+  // Oldest first; never-fetched members go first of all.
+  const queue = members.filter(m => m.fec).sort((a, b) => (status[a.id]?.at || "").localeCompare(status[b.id]?.at || ""));
+  let done = 0, failed = 0;
+  for (const m of queue) {
+    if (budgetLeft(HOST) < 3) break;
+    try {
+      const d = await memberDonors(m, key, status[m.id] || {});
+      if (d) writeJSON(`donors/${m.id}.json`, d);
+      status[m.id] = { at: new Date().toISOString(), committee: d?.committee || null };
+      done++;
+    } catch (e) {
+      if (e instanceof OutOfBudget) break;
+      if (/^(401|403)/.test(e.message)) { log("donors: the API key was rejected (check the DATA_GOV_API_KEY secret)"); break; }
+      status[m.id] = { ...(status[m.id] || {}), at: new Date().toISOString(), err: e.message.slice(0, 80) };
+      failed++;
+    }
+  }
+  writeJSON("donors/_status.json", status);
+  log(`donors: refreshed ${done}, failed ${failed}, ${queue.length} members have FEC ids`);
+}

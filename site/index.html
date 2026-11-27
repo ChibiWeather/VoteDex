@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Progress of Congress</title>
+<meta name="description" content="See how Congress and the New Hampshire legislature vote, who pays for their campaigns, and what bills mean for you, in plain English.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE playful, game-like, very few words
+   IDEA a retro stadium scoreboard: pixel map as the field, members as player cards
+   PICTURE pixelated US map rasterized from real state shapes, coloured by Senate delegation
+   COLOUR night scoreboard ground, cream ink, party blue / red / purple, scoreboard yellow accent
+   TYPE Press Start 2P for logo and headings only + Public Sans for text and every number
+   LAYOUT one column; map fills the width; state = roster grid; member = stat card */
+:root{color-scheme:dark;--bg:#0e1320;--panel:#171e30;--line:#2a3550;--ink:#f3ecd8;--mute:#9aa3bb;--D:#3d7bff;--R:#ff4b3e;--I:#a66bff;--y:#ffd23f;--ok:#3ee07a;--empty:#1d2538}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:17px/1.5 "Public Sans",system-ui,sans-serif;font-variant-numeric:lining-nums;overflow-x:clip;image-rendering:pixelated}
+a{color:inherit}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.px{font-family:"Press Start 2P",monospace;letter-spacing:0;line-height:1.35}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(4vw,16px,env(safe-area-inset-left,0px));padding-right:max(4vw,16px,env(safe-area-inset-right,0px))}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:16px 6px}
+.logo{font-size:clamp(10px,2.6vw,13px);text-decoration:none;color:var(--y)}
+nav{margin-left:auto;display:flex;gap:6px}
+.nav{font-size:10px;text-decoration:none;padding:9px 10px;border:2px solid var(--line)}
+.nav.on{border-color:var(--y);color:var(--y)}
+.vbtn{font-family:"Public Sans",sans-serif;font-weight:800;font-size:15px;padding:12px 16px;border:2px solid var(--line);background:var(--bg);min-width:72px}
+.vbtn.on.y{background:var(--ok);color:#06200f;border-color:var(--ok)}
+.vbtn.on.n{background:var(--R);color:#2a0400;border-color:var(--R)}
+.ballot{background:var(--panel);border:2px solid var(--line);padding:14px;display:grid;gap:10px}
+.ballot .vb{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ballot .t{font-weight:600;font-size:18px}
+.score{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.score .pl .pct{font-family:"Public Sans",sans-serif;font-weight:800;font-size:24px;color:var(--y)}
+.score .pl small{color:var(--mute);font-size:14px}
+.btn{font-family:"Press Start 2P",monospace;font-size:11px;border:2px solid var(--y);color:var(--y);padding:10px 12px;display:inline-block;text-decoration:none;margin-top:12px}
+.back{margin-left:auto;font-family:"Press Start 2P",monospace;font-size:11px;border:2px solid var(--ink);padding:9px 12px;box-shadow:3px 3px 0 var(--line)}
+.back:active{transform:translate(2px,2px);box-shadow:none}
+main{padding-block:8px 40px}
+h1{font-family:"Press Start 2P",monospace;font-size:clamp(20px,5vw,34px);line-height:1.25;margin:10px 0 8px;font-weight:400}
+h2{font-family:"Press Start 2P",monospace;font-size:12px;color:var(--y);margin:26px 0 10px;font-weight:400}
+.hint{color:var(--mute);margin:0 0 10px}
+.map canvas{display:block;margin:0 auto;touch-action:manipulation}
+select{font:inherit;font-size:16px;margin-top:14px;width:100%;max-width:340px;padding:10px;background:var(--panel);color:var(--ink);border:2px solid var(--line)}
+.key{display:flex;flex-wrap:wrap;gap:14px;font-size:14px;color:var(--mute);margin-top:8px}
+.key i{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:-1px}
+.split{background:repeating-linear-gradient(90deg,var(--D) 0 6px,var(--R) 6px 12px)}
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.pl{display:flex;flex-direction:column;align-items:flex-start;gap:6px;background:var(--panel);border:2px solid var(--line);padding:10px;text-decoration:none;position:relative}
+.pl:hover{border-color:var(--ink)}
+.pl .num{position:absolute;top:8px;right:8px;font-family:"Public Sans",sans-serif;font-weight:800;font-size:14px;color:var(--mute)}
+.pl b{font-weight:600;line-height:1.2}
+.ava{width:40px;height:40px;display:grid;place-items:center;font-family:"Public Sans",sans-serif;font-weight:800;font-size:12px;color:#fff;box-shadow:inset -4px -4px 0 rgba(0,0,0,.25)}
+.card{border:3px solid var(--ink);background:var(--panel);box-shadow:6px 6px 0 var(--line)}
+.card .top{display:flex;gap:14px;align-items:center;padding:16px;border-bottom:3px solid var(--ink)}
+.card .top .ava{width:72px;height:72px;font-size:20px;box-shadow:inset -6px -6px 0 rgba(0,0,0,.25)}
+.card .jersey{margin-left:auto;font-family:"Public Sans",sans-serif;font-weight:800;font-size:clamp(26px,7vw,44px);text-align:right}
+.card .jersey small{display:block;font-size:9px;color:var(--mute);margin-top:4px}
+.card .nm{font-weight:800;font-size:clamp(20px,4.6vw,28px);line-height:1.15;letter-spacing:-.01em}
+.card .pos{color:var(--mute);margin-top:4px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.stats div{padding:14px 12px;border-right:2px solid var(--line);border-bottom:2px solid var(--line)}
+.stats div:nth-child(3n){border-right:0}
+.stats b{display:block;font-family:"Public Sans",sans-serif;font-weight:800;font-size:clamp(24px,6vw,34px);color:var(--y);letter-spacing:-.02em}
+.stats b.na{color:var(--mute)}
+.stats span{font-size:14px;color:var(--mute)}
+.log{display:grid;gap:6px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;background:var(--panel);border:2px solid var(--line);padding:10px 12px;text-decoration:none}
+.row small{color:var(--mute);font-size:14px;display:block}
+.tag{font-family:"Public Sans",sans-serif;font-weight:800;font-size:13px;padding:7px 8px;white-space:nowrap}
+.tag.y{background:var(--ok);color:#06200f}
+.tag.n{background:var(--R);color:#2a0400}
+.tag.o{background:var(--empty);color:var(--mute)}
+.empty{border:2px dashed var(--line);padding:14px;color:var(--mute)}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.links a{border:2px solid var(--line);padding:6px 12px;font-size:15px;text-decoration:none}
+.links a:hover{border-color:var(--ink)}
+.sec{margin:10px 0;padding-left:12px;border-left:4px solid var(--line)}
+.sec b{color:var(--y);font-weight:600}
+.sides{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:12px}
+.sides div{background:var(--panel);padding:10px 12px;font-size:16px}
+.sides b{display:block;color:var(--mute);font-weight:600;font-size:14px}
+.you{background:var(--panel);border:2px solid var(--y);padding:14px 16px;margin-top:10px}
+.you ul{margin:6px 0 0;padding-left:20px}
+.you li{margin:4px 0}
+dl.terms{margin:0;display:grid;gap:10px}
+dl.terms div{background:var(--panel);padding:10px 14px}
+dl.terms dt{font-weight:700;color:var(--y)}
+dl.terms dd{margin:2px 0 0}
+.feed{display:grid;gap:8px}
+.ev{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;background:var(--panel);border:2px solid var(--line);padding:12px 14px;text-decoration:none}
+.ev .d{font-weight:800;color:var(--y);white-space:nowrap;font-size:15px}
+.ev small{color:var(--mute);display:block}
+.ev .mine{grid-column:2;font-size:15px}
+.tg{display:flex;align-items:center;gap:12px;background:var(--panel);border:2px solid var(--line);padding:12px 14px;cursor:pointer}
+.tg input{flex:none;width:22px;height:22px;accent-color:#ffd23f}
+.ok{color:var(--ok);font-size:15px;margin-top:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}
+.chip2{border:2px solid var(--line);padding:8px 12px;font-weight:600;font-size:15px}
+.chip2.on{border-color:var(--y);color:var(--y)}
+.chip2 b{margin-left:4px}
+.pay{grid-column:1/-1;font-size:13px;color:var(--mute)}
+.cty{margin:6px 0}
+.cty summary{font-weight:700}
+.cty .roster{margin-top:10px}
+.pick{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}
+.pick label{display:grid;gap:4px;font-size:14px;color:var(--mute)}
+.pick select{margin:0;width:auto;min-width:180px}
+.addr{display:flex;gap:8px;margin:6px 0}
+.addr input{flex:1;font:inherit;font-size:16px;padding:10px 12px;background:var(--panel);color:var(--ink);border:2px solid var(--line)}
+.contact{margin:8px 0}
+.contact summary{font-family:"Press Start 2P",monospace;font-size:11px;color:var(--y);padding:6px 0}
+.contact textarea{width:100%;margin-top:10px;font:inherit;font-size:16px;padding:10px;background:var(--panel);color:var(--ink);border:2px solid var(--line)}
+.contact .vbtn{margin-top:8px}
+footer{color:var(--mute);font-size:13px;padding-block:6px 28px}
+@media(max-width:480px){.roster{grid-template-columns:repeat(2,minmax(0,1fr))}.card .top{padding:12px;gap:10px}.card .top .ava{width:52px;height:52px;font-size:14px}}
+</style>
+</head><body>
+<div class="wrap"><header><a class="logo px" href="#">PROGRESS OF CONGRESS</a><nav><a class="nav px" id="nmap" href="#">MAP</a><a class="nav px" id="nbal" href="#ballot">BALLOT</a><a class="nav px" id="nupd" href="#updates">UPDATES</a></nav></header></div>
+<main class="wrap" id="app"><p class="hint">Loading…</p></main>
+<footer class="wrap" id="foot">Loading…</footer>
+
+<script>
+{
+const GRID={"W":110,"H":68,"rows":["............................................................................................................................................................................................................................","............................................................................................................................................................................................................................","..................................WA........................................................................................................................................................................................","............................WA......WAWAWAWA................................................................................................................................................................................","............................WAWAWAWAWAWAWAWAWAWAWAWA........................................................................................................................................................................","............................WAWAWAWAWAWAWAWAWAWAWAWAIDIDMTMTMT..............................................................................................................................................................","............................WAWA..WAWAWAWAWAWAWAWAWAIDIDMTMTMTMTMTMTMTMT........................................................................................................................................MEMEME......","............................WAWAWAWAWAWAWAWAWAWAWAWAIDIDMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMT......................................................................................................................MEMEMEME......","............................WAWAWAWAWAWAWAWAWAWAWAWAIDIDMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTNDNDNDNDNDNDNDNDNDNDNDMNMNMNMN..................................................................................MEMEMEME......","..........................ORORWAWAWAWAWAWAWAWAWAWAIDIDIDMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTNDNDNDNDNDNDNDNDNDNDNDMNMNMNMNMNMNMNMN..........................................................................MEMEMEMEME....","..........................ORORORORWAWAWAWAWAWAWAWAIDIDIDIDMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTNDNDNDNDNDNDNDNDNDNDNDMNMNMNMNMNMNMNMNMNMNMNMNMNMI..............................................................MEMEMEMEMEME..","........................ORORORORORORORORORORORORWAIDIDIDIDMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTNDNDNDNDNDNDNDNDNDNDNDNDMNMNMNMNMNMNMNMNMNMN........MI..........................................................MEMEMEMEMEME..","........................ORORORORORORORORORORORORORIDIDIDIDMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTNDNDNDNDNDNDNDNDNDNDNDNDMNMNMNMNMNMNMNMNMN........MI..........................................................NHMEMEMEMEME....","........................ORORORORORORORORORORORORORIDIDIDIDMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTNDNDNDNDNDNDNDNDNDNDNDNDMNMNMNMNMNMNMNMN..WI..MIMIMIMIMI..MIMIMIMI....................................NYVTVTVTNHMEMEMEME......","......................ORORORORORORORORORORORORORIDIDIDIDIDIDMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTNDNDNDNDNDNDNDNDNDNDNDNDMNMNMNMNMNMNMNWIWIWIWIMIMIMIMIMIMIMIMI....................................NYNYNYVTVTNHNHMEMEME........","....................ORORORORORORORORORORORORORORIDIDIDIDIDIDMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTMTSDSDSDSDSDNDNDNDNDNDNDNDMNMNMNMNMNMNMNWIWIWIWIWIWIWIWIMI........MI..............................NYNYNYNYVTVTNHNHNHME..........","....................ORORORORORORORORORORORORORORIDIDIDIDIDIDIDMTMTMTWYWYWYWYMTMTMTMTMTMTMTMTSDSDSDSDSDSDSDSDSDSDSDSDSDMNMNMNMNMNMNWIWIWIWIWIWIWIWIWIMI......MIMIMIMI........................NYNYNYNYNYVTVTNHNHNHME..........","....................ORORORORORORORORORORORORORORIDIDIDIDIDIDIDIDIDIDWYWYWYWYWYWYWYWYWYWYWYWYSDSDSDSDSDSDSDSDSDSDSDSDSDMNMNMNMNMNMNMNWIWIWIWIWIWIWIWI......MIMIMIMIMI..........................NYNYNYNYNYVTNHNHNH............","....................CACAORORORORORORORORORORORIDIDIDIDIDIDIDIDIDIDIDWYWYWYWYWYWYWYWYWYWYWYWYSDSDSDSDSDSDSDSDSDSDSDSDSDMNMNMNMNMNMNMNWIWIWIWIWIWIWIWIWI....MIMIMIMIMI........................NYNYNYNYNYNYVTMAMAMA............","....................CACACACACACAORORORORORORORIDIDIDIDIDIDIDIDIDIDIDWYWYWYWYWYWYWYWYWYWYWYWYSDSDSDSDSDSDSDSDSDSDSDSDSDMNMNMNMNMNMNMNMNWIWIWIWIWIWIWIWI....MIMIMIMI..MIMI............NYNYNYNYNYNYNYNYNYNYMAMAMAMAMA..MA......","....................CACACACACACACANVNVNVORORORIDIDIDIDIDIDIDIDIDIDIDWYWYWYWYWYWYWYWYWYWYWYWYSDSDSDSDSDSDSDSDSDSDSDSDSDMNMNMNMNMNMNMNMNMNWIWIWIWIWIWIWI....MIMIMIMIMIMIMI............NYNYNYNYNYNYNYNYNYNYCTCTCTRIRIMA........","..................CACACACACACACACANVNVNVNVNVNVNVIDIDIDIDIDIDIDIDIDIDWYWYWYWYWYWYWYWYWYWYWYWYSDSDSDSDSDSDSDSDSDSDSDSDSDMNMNMNMNMNMNMNMNMNIAWIWIWIWIWI......MIMIMIMIMIMIMI............NYNYNYNYNYNYPANYNYNYCTCTCT..............","..................CACACACACACACACANVNVNVNVNVNVNVNVNVNVNVUTIDIDIDIDWYWYWYWYWYWYWYWYWYWYWYWYWYNENESDSDSDSDSDSDSDSDSDSDSDIAIAIAIAIAIAIAIAIAIAWIWIWIWIWIWI......MIMIMIMIMIMI..........NYNYPAPAPAPAPAPAPANYNYNY..................","..................CACACACACACACACANVNVNVNVNVNVNVNVNVNVNVUTUTUTUTUTWYWYWYWYWYWYWYWYWYWYWYWYWYNENENENENENENENENENENENESDIAIAIAIAIAIAIAIAIAIAWIWIWIWIWIWI......MIMIMIMIMI........OHPAPAPAPAPAPAPAPAPAPANJNJ..NY................","..................CACACACACACACANVNVNVNVNVNVNVNVNVNVNVNVUTUTUTUTUTWYWYWYWYWYWYWYWYWYWYWYWYWYNENENENENENENENENENENENENEIAIAIAIAIAIAIAIAIAIAIAILILILILIL....MIMIMIMIMIMI......OHOHPAPAPAPAPAPAPAPAPAPANJNJ....................","..................CACACACACACACANVNVNVNVNVNVNVNVNVNVNVUTUTUTUTUTUTWYWYWYWYWYWYWYWYWYWYWYWYWYNENENENENENENENENENENENENENEIAIAIAIAIAIAIAIAIAIAIAILILILILINININININOHOHOHOHOHOHOHOHPAPAPAPAPAPAPAPAPAPAPANJ....................","..................CACACACACACACANVNVNVNVNVNVNVNVNVNVNVUTUTUTUTUTUTUTUTUTCOCOCOWYWYWYWYWYWYWYNENENENENENENENENENENENENENEIAIAIAIAIAIAIAIAIAILILILILILILILINININININOHOHOHOHOHOHOHPAPAPAPAPAPAPAPAPAPANJNJ....................","....................CACACACACACANVNVNVNVNVNVNVNVNVNVNVUTUTUTUTUTUTUTUTUTCOCOCOCOCOCOCOCOCOCOCOCOCONENENENENENENENENENENEIAIAIAIAIAIAIAIAIAILILILILILILILINININININOHOHOHOHOHOHOHWVPAPAPAPAPAPAMDMDMDNJNJ....................","......................CACACACACACANVNVNVNVNVNVNVNVNVNVUTUTUTUTUTUTUTUTUTCOCOCOCOCOCOCOCOCOCOCOCOCONENENENENENENENENENENEIAIAIAIAIAIAIAIAIAILILILILILILILINININININOHOHOHOHOHOHOHWVPAWVMDMDWVMDMDMDMDDENJ....................","....................CACACACACACACANVNVNVNVNVNVNVNVNVNVUTUTUTUTUTUTUTUTUTCOCOCOCOCOCOCOCOCOCOCOCOCONENENENENENENENENENENENEMOMOMOMOMOMOMOILILILILILILILILINININININOHOHOHOHOHOHOHWVWVWVWVWVVAVADCMDMDDE......................","....................CACACACACACACACANVNVNVNVNVNVNVNVUTUTUTUTUTUTUTUTUTUTCOCOCOCOCOCOCOCOCOCOCOCOCOKSKSKSKSKSKSKSKSKSKSKSKSKSMOMOMOMOMOMOMOILILILILILILILINININININOHOHOHOHOHOHWVWVWVWVWVVAVAVAMDMDMDMD......................","......................CACACACACACACACANVNVNVNVNVNVNVUTUTUTUTUTUTUTUTUTUTCOCOCOCOCOCOCOCOCOCOCOCOCOKSKSKSKSKSKSKSKSKSKSKSKSKSMOMOMOMOMOMOMOMOILILILILILILINININININKYOHOHOHOHWVWVWVWVWVVAVAVAVAVAVA..........................","....................CACACACACACACACACANVNVNVNVNVNVNVUTUTUTUTUTUTUTUTUTUTCOCOCOCOCOCOCOCOCOCOCOCOCOKSKSKSKSKSKSKSKSKSKSKSKSKSKSMOMOMOMOMOMOMOILILILILILILININININKYKYKYKYKYWVWVWVWVWVWVVAVAVAVAVAVAVAVA......................","......................CACACACACACACACACANVNVNVNVNVNVUTUTUTUTUTUTUTUTUTCOCOCOCOCOCOCOCOCOCOCOCOCOCOKSKSKSKSKSKSKSKSKSKSKSKSKSKSMOMOMOMOMOMOMOMOILILILILILINININKYKYKYKYKYKYKYWVWVWVWVVAVAVAVAVAVAVAVA........................","......................CACACACACACACACACACANVNVNVNVNVUTUTUTUTUTUTUTUTUTCOCOCOCOCOCOCOCOCOCOCOCOCOCOKSKSKSKSKSKSKSKSKSKSKSKSKSKSMOMOMOMOMOMOMOMOILILILILININKYKYKYKYKYKYKYKYKYKYWVWVVAVAVAVAVAVAVAVAVAVA......................","........................CACACACACACACACACANVNVNVNVAZAZAZAZAZAZAZUTUTUTCOCOCOCOCOCOCOCOCOCOCOCOCOCOKSKSKSKSKSKSKSKSKSKSKSKSKSKSMOMOMOMOMOMOMOMOMOILILILKYKYKYKYKYKYKYKYKYKYKYVAVAVAVAVAVAVAVAVANCNCNCNC......................","........................CACACACACACACACACACANVNVAZAZAZAZAZAZAZAZAZAZAZNMNMNMNMCOCOCOCOCOCOCOCOCOCOKSKSKSKSKSKSKSKSKSKSKSKSKSKSMOMOMOMOMOMOMOMOMOMOILILKYKYKYKYKYKYKYKYKYKYVAVAVAVANCNCNCNCNCNCNCNCNCNCNC....................","........................CACACACACACACACACACACANVAZAZAZAZAZAZAZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMNMOKOKOKOKOKKSKSKSKSKSKSKSKSKSKSKSMOMOMOMOMOMOMOMOMOMOKYKYKYKYKYKYKYTNTNTNTNTNTNTNNCNCNCNCNCNCNCNCNCNCNCNC......................","............................CACACACACACACACACANVAZAZAZAZAZAZAZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMNMTXOKOKOKOKOKOKOKOKOKOKOKOKOKOKOKMOMOMOMOMOMOMOMOMOMOTNTNTNTNTNTNTNTNTNTNTNTNTNNCNCNCNCNCNCNCNCNCNCNCNC........................","..............................CACACACACACACACACAAZAZAZAZAZAZAZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMTXTXTXTXTXTXOKOKOKOKOKOKOKOKOKOKOKARARARARARARARARMOMOTNTNTNTNTNTNTNTNTNTNTNTNNCNCNCNCNCNCNCNCNCNCNCNCNC........................","................................CACACACACACACACAAZAZAZAZAZAZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMNMTXTXTXTXTXTXOKOKOKOKOKOKOKOKOKOKOKARARARARARARARARARTNTNTNTNTNTNTNTNTNTNTNTNNCNCSCSCSCSCNCSCSCNCNCNCNC..........................","..................................CACACACACACAAZAZAZAZAZAZAZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMNMTXTXTXTXTXTXOKOKOKOKOKOKOKOKOKOKOKARARARARARARARARARTNTNTNTNTNTNTNTNTNGAGAGAGASCSCSCSCSCSCSCSCSCNCNC............................","..................................CACACACACACAAZAZAZAZAZAZAZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMNMTXTXTXTXTXTXOKOKOKOKOKOKOKOKOKOKOKARARARARARARARARARMSMSMSMSALALALALALGAGAGAGAGAGASCSCSCSCSCSCSCSC..............................","..................................CACACACACACAAZAZAZAZAZAZAZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMNMTXTXTXTXTXTXOKOKOKOKOKOKOKOKOKOKOKARARARARARARARARMSMSMSMSMSALALALALALGAGAGAGAGAGAGASCSCSCSCSCSC................................","............................................AZAZAZAZAZAZAZAZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMNMTXTXTXTXTXTXTXTXOKOKOKOKOKOKOKOKOKARARARARARARARMSMSMSMSMSMSALALALALALALGAGAGAGAGAGAGASCSCSCSCSC................................","..............................................AZAZAZAZAZAZAZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMNMTXTXTXTXTXTXTXTXTXTXTXTXTXOKTXTXOKARARARARARARARMSMSMSMSMSMSALALALALALALGAGAGAGAGAGAGAGASCSCSC..................................","..................................................AZAZAZAZAZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMNMTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXARARARARARARMSMSMSMSMSMSALALALALALALGAGAGAGAGAGAGAGASCSC....................................","....................................................AZAZAZAZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMNMTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXLALALALALALAMSMSMSMSMSMSALALALALALALALGAGAGAGAGAGAGAGA......................................","........................................................AZAZAZAZAZNMNMNMNMNMNMNMNMNMNMNMNMNMTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXLALALALALALAMSMSMSMSMSMSALALALALALALALGAGAGAGAGAGAGAGA......................................","................................................................AZNMNM........TXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXLALALALALALAMSMSMSMSMSMSALALALALALALALGAGAGAGAGAGAGAGA......................................","................................................................................TXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXLALALALALAMSMSMSMSMSMSALALALALALALALGAGAGAGAGAGAGA........................................","..............................AKAKAKAK..........................................TXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXLALALALAMSMSMSMSMSMSMSALALALFLFLFLFLGAGAGAGAFLFLFLFL......................................","..........................AKAKAKAKAKAKAKAK..........................................TXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXLALALALALALALALAMSMSMSALALFLFLFLFLFLFLFLFLFLFLFLFLFL......................................","............................AKAKAKAKAKAKAK..........................................TXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXLALALALALALALALAMSMS....AL........FLFLFL..FLFLFLFLFLFL....................................","..........................AKAKAKAKAKAKAKAKAK........................................TXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTXLALALALALALALALA............................FLFLFLFLFL....................................","........................AKAKAKAKAKAKAKAKAKAK..........................................TXTXTX......TXTXTXTXTXTXTXTXTXTXTXTXTXTXTXTX....LA..LALALALALA..............................FLFLFLFL..................................","....................AK......AKAKAKAKAKAKAKAK............................................TX..........TXTXTXTXTXTXTXTXTXTXTXTXTX................LALA..LA............................FLFLFLFL..................................","..........................AKAKAKAKAKAKAKAKAK..................HI....................................TXTXTXTXTXTXTXTXTXTXTXTX....................................................FLFLFLFLFLFL................................","........................AKAKAKAKAKAKAKAKAKAK..........................................................TXTXTXTXTXTXTXTXTX..........................................................FLFLFLFLFL................................","........................AKAKAKAKAKAKAK..AKAKAK........................HI................................TXTXTXTXTXTX..............................................................FLFLFLFLFLFL..............................","............................AKAKAK..AK..........AKAK....................................................TXTXTXTXTX....................................................................FLFLFLFL..............................","................................AK................AKAKAK..................................................TXTXTXTX....................................................................FLFLFLFL..............................","..............................AK..AK......................................................................TXTXTXTX......................................................................FLFLFL..............................","............................AK..................................................HIHI........................TXTXTX........................................................................FLFL..............................","................................................................................HIHI..............................TX........................................................................................................","..............AKAK..........................................................................................................................................................................................................","............................................................................................................................................................................................................................","............................................................................................................................................................................................................................"]};
+const SN={AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"Washington DC",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming"};
+const PN={D:"Democrat",R:"Republican",I:"Independent"};
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pc=p=>`var(--${p==="R"?"R":p==="D"?"D":"I"})`;
+const cg=(t,n,s="")=>`https://www.congress.gov/bill/119th-congress/${t}/${n}${s}`;
+
+const BILLS=[
+{id:"hr1",num:"H.R. 1",short:"One Big Beautiful Bill Act",sponsor:"A000375",t:"house-bill",n:1,pl:"PLAW-119publ21",
+ one:"Big budget law: extends tax cuts, cuts projected Medicaid and food-aid spending, adds border and defense money, raises the debt limit. Signed July 4, 2025.",
+ secs:[["Taxes","2017 income tax cuts made permanent. Temporary deductions for tips, overtime and seniors. SALT cap raised to $40,000."],["Medicaid","Work requirements for many expansion adults by 2027."],["Food aid","Wider SNAP work rules; states share costs from 2028."],["Energy","Many clean-energy tax credits phased out."],["Border and defense","About $170B immigration enforcement, about $150B military."],["Debt limit","Raised by $5 trillion."]],
+ pro:"Prevents a big tax increase and tightens safety-net rules.",con:"Tilts benefits to higher earners; millions could lose coverage."},
+{id:"s5",num:"S. 5",short:"Laken Riley Act",sponsor:"B001319",t:"senate-bill",n:5,pl:"PLAW-119publ1",
+ one:"Requires detention of people here illegally who are charged with or arrested for theft and certain other crimes; lets states sue over immigration enforcement. Signed Jan 29, 2025.",
+ secs:[],pro:"Closes gaps that let people charged with crimes be released.",con:"Mandates detention before any conviction."},
+{id:"s146",num:"S. 146",short:"TAKE IT DOWN Act",sponsor:"C001098",t:"senate-bill",n:146,pl:"PLAW-119publ12",
+ one:"Makes posting intimate images without consent, including AI fakes, a federal crime; sites must remove them within 48 hours. Signed May 19, 2025.",
+ secs:[],pro:"Gives victims a fast way to get images removed.",con:"The 48-hour rule could lead sites to over-remove lawful posts."},
+{id:"s1582",num:"S. 1582",short:"GENIUS Act",sponsor:"H000601",t:"senate-bill",n:1582,pl:"PLAW-119publ27",
+ one:"First federal rules for stablecoins: one-to-one reserves, monthly disclosures, licensing. Signed July 18, 2025.",
+ secs:[],pro:"Clear rules protect consumers and keep crypto in the U.S.",con:"Weak limits on conflicts of interest and big-tech coins."},
+{id:"hr1968",num:"H.R. 1968",short:"Full-Year Continuing Appropriations Act, 2025",sponsor:"C001053",t:"house-bill",n:1968,pl:"PLAW-119publ4",
+ one:"Kept the government open through Sept 30, 2025, mostly at prior-year levels. Signed Mar 15, 2025.",
+ secs:[],pro:"Avoided a shutdown.",con:"Gave the executive branch wide say over spending."},
+{id:"hr4",num:"H.R. 4",short:"Rescissions Act of 2025",sponsor:"S001176",t:"house-bill",n:4,pl:"PLAW-119publ28",
+ one:"Cancels about $9 billion already approved, mostly foreign aid and public broadcasting. Signed July 24, 2025.",
+ secs:[],pro:"Trims spending seen as wasteful.",con:"Hurts local stations and aid programs."},
+{id:"s331",num:"S. 331",short:"HALT Fentanyl Act",sponsor:"C001075",t:"senate-bill",n:331,pl:"PLAW-119publ26",
+ one:"Permanently puts fentanyl-like chemicals in the strictest drug class, with fentanyl-level penalties. Signed July 16, 2025.",
+ secs:[],pro:"Stops traffickers from tweaking chemicals to dodge the law.",con:"Mandatory minimums haven't cut drug use."},
+{id:"hr8800",num:"H.R. 8800",short:"Defense bill for 2027 (NDAA)",status:"Passed House · stuck in Senate",t:"house-bill",n:8800,
+ one:"The yearly defense policy bill. Sets more than $1 trillion in military spending levels and Pentagon rules for 2027.",
+ secs:[["Section 219 (Israel)","Creates a Pentagon coordinator to speed up joint research and testing of new military technology with Israel, such as drone defense, anti-tunneling, air defense, AI and cyber. It adds joint training exercises and information sharing, and requires yearly reports to Congress through 2030."],["What Section 219 does not do","According to news coverage of the text, it does not create a joint military force, does not put U.S. troops under Israeli command or Israeli troops under U.S. command, and does not commit either country to the other's wars."]],
+ pro:"Supporters say closer tech cooperation with Israel helps U.S. security and that the bill funds troops and their families.",con:"Opponents say it ties the U.S. military too closely to Israel's and spends too much during the Iran war."}
+];
+const PLAIN={
+hr1:{one:"One giant law that changes taxes, health care, food aid, energy and the border all at once. Signed July 4, 2025.",
+ you:["Your income tax rates stay where they have been since 2018 instead of going up.","If you earn tips or overtime, or you are 65 or older, you may get a new deduction through 2028.","If you get Medicaid through the expansion and are 19 to 64, you may have to show about 80 hours a month of work, school or volunteering starting by 2027.","If you get food stamps (SNAP), work rules now cover more adults."],
+ terms:[["Deduction","An amount you subtract from your income before tax is figured, so you owe less."],["SALT","State and local taxes. You can deduct up to $40,000 of them now, up from $10,000."],["Medicaid","Government health coverage for people with low incomes, run by states with federal money."],["SNAP","The Supplemental Nutrition Assistance Program, better known as food stamps."],["Debt limit","The legal cap on how much the government can borrow to pay bills it already owes."]]},
+s5:{one:"Says people in the country illegally who are charged with theft or certain violent crimes must be held in jail by immigration officials. Signed Jan 29, 2025.",
+ you:["If you are a citizen, nothing changes for you directly.","It changes who immigration officers must hold, even before a trial.","Your state can now sue the federal government over immigration decisions."],
+ terms:[["Detain","Hold someone in custody instead of releasing them while their case goes on."],["Charged","Formally accused of a crime. It is not the same as being found guilty."],["State attorney general","Your state's top lawyer."]]},
+s146:{one:"Makes it a crime to post someone's nude or sexual images without their OK, including fake AI images, and forces websites to take them down fast. Signed May 19, 2025.",
+ you:["If someone posts an intimate image of you without your OK, real or AI-made, you can ask the site to remove it.","Sites must take it down within 48 hours.","Posting such images on purpose can lead to prison time."],
+ terms:[["Deepfake (digital forgery)","A fake image or video made with AI that looks like a real person."],["Non-consensual","Done without the person's permission."],["Platform","A website or app where people post things, like social media."]]},
+s1582:{one:"Sets the first national rules for stablecoins, which are digital coins designed to always be worth exactly $1. Signed July 18, 2025.",
+ you:["If you never use crypto, nothing changes for you.","If you hold stablecoins, the company behind them must keep real dollars or very safe investments to back every coin.","They must show what they hold every month, and if they go broke, coin holders get paid back first.","Stablecoins are still not insured by the government the way bank deposits are."],
+ terms:[["Stablecoin","A kind of cryptocurrency meant to always equal one U.S. dollar, so its price doesn't swing like Bitcoin's. Examples are USDC and Tether."],["Issuer","The company that creates the coins and holds the money behind them."],["Reserves","The real money or safe investments kept to back each coin, one dollar for every coin."],["Treasury bills","Short-term loans to the U.S. government, considered very safe."]]},
+hr1968:{one:"A stopgap money bill that kept the government open until Sept 30, 2025, mostly at the previous year's spending. Signed Mar 15, 2025.",
+ you:["Government services like national parks, passports and Social Security offices kept running without a shutdown.","No big new programs. Most budgets stayed the same as the year before."],
+ terms:[["Continuing resolution","A temporary bill that keeps funding the government at last year's levels when Congress hasn't passed a new budget."],["Fiscal year","The government's budget year, Oct 1 to Sept 30."],["Shutdown","When funding runs out and many government offices close until Congress acts."],["Cloture","A Senate vote to end debate. It needs 60 votes, which is how the minority can block bills."]]},
+hr4:{one:"Takes back about $9 billion Congress had already approved, mostly for foreign aid and public radio and TV. Signed July 24, 2025.",
+ you:["Your local public radio or TV station lost its federal grant money, which may change what it can air.","Some U.S. aid programs overseas were cut. The global HIV program was spared."],
+ terms:[["Rescission","Cancelling money that Congress already approved but hasn't been spent yet."],["Corporation for Public Broadcasting","The group that passed federal money to NPR and PBS stations."],["Foreign aid","U.S. money spent abroad on health, food and development programs."]]},
+hr8800:{one:"The yearly defense bill. It sets military spending levels and rules for 2027. Its Israel section expands joint research and training. It does not merge the two militaries.",
+ you:["If you or your family serve in the military, this bill sets pay raises, housing and benefits for next year.","Section 219 means more joint weapons research and training with Israel. It does not put U.S. troops under Israeli command.","It passed the House by 4 votes. In the Senate, Democrats blocked starting debate on their version, in protest over the Iran war."],
+ terms:[["NDAA","National Defense Authorization Act. Congress passes one every year to set military policy and spending limits."],["Authorization","Permission to spend up to an amount. The actual money comes later in a separate spending bill."],["Cloture on the motion to proceed","A Senate vote just to start debating a bill. It needs 60 votes. A No can mean 'not yet' rather than 'never'."],["Why did the Senate leader vote No?","Majority leaders often switch to No when a vote is going to fail. That lets them bring the same vote back later under Senate rules."]]},
+s331:{one:"Makes chemicals that are copies of fentanyl permanently illegal, with the same penalties as fentanyl itself. Signed July 16, 2025.",
+ you:["Prescription medicines you get from a doctor are not affected.","Selling fentanyl look-alike drugs now carries the same prison sentences as selling fentanyl."],
+ terms:[["Fentanyl-related substance","A chemical tweaked slightly from fentanyl, often to get around drug laws."],["Schedule I","The strictest drug category, for drugs the law says have no accepted medical use."],["Mandatory minimum","The shortest prison sentence a judge is allowed to give for a crime."]]}
+};
+const STEPS={hr1:[["2025-05-22","House passes its version","215–214",1],["2025-06-28","Senate votes to start debate","51–49",1],["2025-07-01","Senate passes amended version","51–50, VP broke the tie",1],["2025-07-03","House agrees to Senate version","218–214",1],["2025-07-04","Signed into law",""]],
+ s5:[["2025-01-20","Senate passes","64–35"],["2025-01-22","House passes","263–156"],["2025-01-29","Signed into law",""]],
+ s146:[["2025-02-13","Senate passes","No recorded vote (unanimous consent)"],["2025-04-28","House passes","409–2"],["2025-05-19","Signed into law",""]],
+ s1582:[["2025-06-17","Senate passes","68–30"],["2025-07-17","House passes","308–122"],["2025-07-18","Signed into law",""]],
+ hr1968:[["2025-03-11","House passes","217–213"],["2025-03-14","Senate ends debate (cloture)","62–38"],["2025-03-14","Senate passes","54–46"],["2025-03-15","Signed into law",""]],
+ hr4:[["2025-06-12","House passes","214–212"],["2025-07-17","Senate passes amended version","51–48"],["2025-07-18","House agrees","216–213"],["2025-07-24","Signed into law",""]],
+ s331:[["2025-03-14","Senate passes","84–16"],["2025-06-12","House passes","321–104"],["2025-07-16","Signed into law",""]]};
+STEPS.hr8800=[["2026-07-14","Senate vote to start debate on its version (S. 4784) fails","50–46, needed 60"],["2026-07-22","House passes","216–212"]];
+const VID={"hr8800|2026-07-14":"s195","hr8800|2026-07-22":"h278","hr1|2025-05-22":"h0522","hr1|2025-06-28":"s0628","hr1|2025-07-01":"s0701","hr1|2025-07-03":"h0703"};
+const fmtD=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+const TOPICS={"hr1": ["Taxes", "Healthcare", "Immigration", "Defense"], "s5": ["Immigration", "Crime"], "s146": ["Tech", "Crime"], "s1582": ["Tech", "Money"], "hr1968": ["Budget"], "hr4": ["Budget", "Foreign policy"], "s331": ["Crime", "Healthcare"], "hr8800": ["Defense", "Veterans", "Foreign policy"]};
+const ALLT=[...new Set(Object.values(TOPICS).flat())].sort();
+const BB=Object.fromEntries(BILLS.map(b=>[b.id,b]));
+// ---- live data (refreshed daily by the GitHub Action) ----
+BB.hr8800.rel=["s4784"];
+const AREA_T={"Taxation":"Taxes","Health":"Healthcare","Immigration":"Immigration","Armed Forces and National Security":"Defense","Crime and Law Enforcement":"Crime","Science, Technology, Communications":"Tech","Finance and Financial Sector":"Money","Economics and Public Finance":"Budget","International Affairs":"Foreign policy","Energy":"Energy","Environmental Protection":"Environment","Education":"Education","Labor and Employment":"Jobs","Agriculture and Food":"Farms and food","Transportation and Public Works":"Transportation","Social Welfare":"Healthcare","Government Operations and Politics":"Government"};
+Object.values(AREA_T).forEach(t=>{if(!ALLT.includes(t))ALLT.push(t)});ALLT.sort();
+let VX=[],VI={},META={},STATS={},BL={};const BVR={};
+const cache={m:{},b:{},d:{},s:{}};
+const J=u=>fetch(u).then(r=>r.ok?r.json():null).catch(()=>null);
+const mVotes=id=>cache.m[id]||(cache.m[id]=J(`data/votes/m/${id}.json`).then(x=>x||{}));
+const bVotes=id=>cache.b[id]||(cache.b[id]=J(`data/votes/b/${id}.json`).then(x=>x||[]));
+const donorsOf=id=>cache.d[id]||(cache.d[id]=J(`data/donors/${id}.json`));
+const TAG={Y:["YES","y"],N:["NO","n"],P:["PRESENT","o"],X:["MISSED","o"]};
+const billIds=id=>[id].concat((BB[id]&&BB[id].rel)||[]);
+async function votesOnBill(id){const a=(await Promise.all(billIds(id).map(bVotes))).flat().sort((x,y)=>y.date.localeCompare(x.date)||y.id.localeCompare(x.id));BVR[id]=a;return a}
+const posOf=(v,id)=>{for(const k of "YNPX")if(v.pos[k].includes(id))return k;return null};
+// A member's deciding vote on a bill: the latest passage-type vote in their chamber they cast Yes or No on.
+function finalOf(m,list){const vs=(list||[]).filter(v=>v.ch===m.c);for(const v of vs.filter(v=>v.big).concat(vs.filter(v=>!v.big))){const k=posOf(v,m.id);if(k==="Y"||k==="N")return{k,v}}return null}
+// Plain-English name for a vote question.
+function plainQ(q){q=q||"";return /cloture/i.test(q)?"Vote to end debate (needs 60)":/motion to proceed/i.test(q)?"Vote to start debate":/suspend the rules and pass/i.test(q)?"Pass the bill (fast track, needs 2/3)":/conference report/i.test(q)?"Pass the final version":/concur|agreeing to the (senate|house) amendment/i.test(q)?"Agree to the final version":/veto|override/i.test(q)?"Override the veto":/passage|^on pass|and pass/i.test(q)?"Pass the bill":/nomination|confirmation/i.test(q)?"Confirm a nominee":/motion to recommit/i.test(q)?"Send the bill back (minority's last try)":/previous question/i.test(q)?"Move to a vote on the rules for debate":/amendment/i.test(q)?"Change the bill (amendment)":/journal/i.test(q)?"Approve the record":/table/i.test(q)?"Set aside a motion":q}
+const vTitle=v=>{const b=v.bill&&(BB[v.bill]||BL[v.bill]);const t=b?(b.short||b.title):(v.desc||v.bl||"");return t.length>90?t.slice(0,88)+"…":t};
+const vLink=v=>v.bill&&(BB[v.bill]||BL[v.bill])?`#b-${v.bill}`:"";
+const fmtISO=d=>fmtD(d);
+function vSrc(v){const[,c,y,n]=v.id.match(/^([hs])(\d+)-(\d+)$/)||[];if(!c)return"";if(c==="h")return`https://clerk.house.gov/Votes/${y}${n}`;const cg=Math.floor((y-1789)/2)+1,ss=y%2?1:2;return`https://www.senate.gov/legislative/LIS/roll_call_votes/vote${cg}${ss}/vote_${cg}_${ss}_${String(n).padStart(5,"0")}.htm`}
+const money=n=>n>=1e6?"$"+(n/1e6).toFixed(n>=1e7?0:1)+"M":n>=1e3?"$"+Math.round(n/1e3)+"K":"$"+Math.round(n||0);
+function withParty(m,map){let a=0,n=0;for(const[id,k]of Object.entries(map)){if(k!=="Y"&&k!=="N")continue;const v=VI[id];const pk=v&&v.pm[m.vp||m.p];if(!pk)continue;n++;if(pk===k)a++}return n?Math.round(a/n*100):null}
+const billTopics=id=>TOPICS[id]||(BL[id]&&AREA_T[BL[id].area]?[AREA_T[BL[id].area]]:[]);
+
+let M=[],byId={};
+const app=document.getElementById("app");
+const ini=n=>{const w=n.replace(/[^A-Za-z .'-]/g,"").split(" ").filter(x=>x.length>1&&!/^(Jr|Sr|II|III)\.?$/.test(x));return(w[0][0]+(w.length>1?w[w.length-1][0]:"")).toUpperCase()};
+const jersey=m=>m.c==="s"?"SEN":(m.d===0?"AL":String(m.d));
+const ava=m=>`<span class="ava" style="background:${pc(m.p)}">${esc(ini(m.n))}</span>`;
+
+function stateFill(s){
+  const ss=M.filter(m=>m.s===s&&m.c==="s");
+  if(!ss.length)return"#5a6378";
+  const ps=new Set(ss.map(m=>m.p));
+  if(ps.size===1)return pc([...ps][0]);
+  if(ps.has("I")&&!ps.has("R"))return"var(--I)";
+  return"split";
+}
+const store=(()=>{let d={home:"",v:{}};try{d=Object.assign(d,JSON.parse(localStorage.getItem("poc-ballot")||"{}"))}catch(e){}return d})();
+const save=()=>{try{localStorage.setItem("poc-ballot",JSON.stringify(store))}catch(e){}};
+// member's final-passage vote on a bill, if loaded
+function billVote(m,billId){const f=finalOf(m,BVR[billId]);return f?{raw:f.k==="Y"?"Yea":"Nay",q:plainQ(f.v.q)}:null}
+function finalVote(m,billId){const f=finalOf(m,BVR[billId]);return f?(f.k==="Y"?"Yea":"Nay"):null}
+function agree(m){let a=0,n=0;BILLS.forEach(b=>{const u=store.v[b.id];if(!u)return;const fv=finalVote(m,b.id);if(!fv)return;n++;if((fv==="Yea")===(u==="Y"))a++});return{a,n}}
+const vbtns=b=>`<span class="vb" data-b="${b.id}"><button class="vbtn y ${store.v[b.id]==="Y"?"on":""}" data-v="Y">YES</button><button class="vbtn n ${store.v[b.id]==="N"?"on":""}" data-v="N">NO</button></span>`;
+function wireVotes(after){app.querySelectorAll(".vb").forEach(w=>w.querySelectorAll("button").forEach(bt=>bt.onclick=()=>{const id=w.dataset.b,v=bt.dataset.v;if(store.v[id]===v)delete store.v[id];else store.v[id]=v;save();after()}))}
+function scoreRow(m){const{a,n}=agree(m);return`<a class="pl" href="#m-${esc(m.id)}"><span class="num">${esc(jersey(m))}</span>${ava(m)}<b>${esc(m.n)}</b><span class="pct">${n?a+"/"+n:"—"}</span><small>${n?"agree with you":"no shared votes yet"}</small></a>`}
+function delegation(s){return M.filter(m=>m.s===s).sort((a,b)=>(a.c===b.c?(a.d||0)-(b.d||0):a.c==="s"?-1:1))}
+
+// ---- state legislatures (Open States) ----
+let SL=null;const SLS={NH:"data/nh_legislature.json"};
+async function loadSL(st){if(!SLS[st])return null;if(SL&&SL.st===st)return SL;const d=await (await fetch(SLS[st])).json();SL={st,rows:d.map((r,i)=>({i,n:r[0],p:r[1],d:r[2],c:r[3],em:r[4]||"",ph:r[5]||"",os:r[6]||""}))};return SL}
+const slTile=r=>`<a class="pl" href="#l-${SL.st}-${r.i}"><span class="num">${esc(r.c==="S"?r.d:r.d.replace(/^\D+/,""))}</span><span class="ava" style="background:${pc(r.p)}">${esc(ini(r.n))}</span><b>${esc(r.n)}</b>${r.c==="H"?`<small class="hint" style="margin:0;font-size:13px">${esc(r.d)}</small>`:""}</a>`;
+async function stateLeg(s,el){
+  if(!SLS[s]){el.innerHTML=`<div class="empty">${esc(SN[s])}'s legislature isn't loaded yet. New Hampshire is first; other states can be added the same way. <div class="links"><a href="https://open.pluralpolicy.com/${s.toLowerCase()}/legislators/">See them on Open States ↗</a></div></div>`;return}
+  const L=await loadSL(s),sen=L.rows.filter(r=>r.c==="S").sort((a,b)=>+a.d-+b.d),hou=L.rows.filter(r=>r.c==="H");
+  const cnt=a=>["R","D","I"].map(p=>[p,a.filter(r=>r.p===p).length]).filter(x=>x[1]).map(([p,n])=>`${n} ${p}`).join(" · ");
+  const counties={};hou.forEach(r=>{const c=r.d.replace(/\s*\d+$/,"");(counties[c]=counties[c]||[]).push(r)});
+  el.innerHTML=`<h2>STATE SENATE <span class="hint" style="font-family:'Public Sans';font-size:14px">${cnt(sen)}</span></h2><div class="roster">${sen.map(slTile).join("")}</div>
+  <h2>STATE HOUSE <span class="hint" style="font-family:'Public Sans';font-size:14px">${hou.length} members · ${cnt(hou)}</span></h2>
+  ${Object.keys(counties).sort().map(c=>`<details class="cty"><summary>${esc(c)} County <span class="hint">${counties[c].length}</span></summary><div class="roster">${counties[c].sort((a,b)=>parseInt(a.d.replace(/\D+/,""))-parseInt(b.d.replace(/\D+/,""))).map(slTile).join("")}</div></details>`).join("")}
+  <p class="hint" style="font-size:14px;margin-top:8px">Names, parties and districts from Open States${META.states?", updated "+fmtD(META.states.slice(0,10)):""}.</p>`;
+}
+async function legislator(st,i){
+  const L=await loadSL(st);const r=L&&L.rows[+i];if(!r){app.innerHTML="<p>Not found.</p>";return}
+  const na='<b class="na">—</b>';
+  const SV=cache.s[st]||(cache.s[st]=J(`data/${st.toLowerCase()}_votes.json`));const sv=await SV;
+  const mine=sv&&r.os&&sv.people[r.os]?Object.entries(sv.people[r.os]).map(([id,k])=>({v:sv.votes[id],k})).filter(x=>x.v).sort((a,b)=>b.v.date.localeCompare(a.v.date)):[];
+  const cast=mine.filter(x=>x.k==="Y"||x.k==="N").length;
+  app.innerHTML=`<div class="card"><div class="top"><span class="ava" style="background:${pc(r.p)}">${esc(ini(r.n))}</span><div><div class="nm">${esc(r.n)}</div><div class="pos">${PN[r.p]} · State ${r.c==="S"?"senator":"rep"} · ${esc(SN[st])}</div></div><div class="jersey">${esc(r.c==="S"?r.d:r.d.replace(/^\D+/,""))}<small>${r.c==="S"?"DIST":esc(r.d.replace(/\s*\d+$/,"").toUpperCase())}</small></div></div>
+  <div class="stats"><div>${mine.length?`<b>${mine.length}</b>`:na}<span>Roll calls this session</span></div><div>${mine.length?`<b>${mine.length-cast}</b>`:na}<span>Missed or present</span></div><div>${na}<span>Bills sponsored</span></div></div></div>
+  ${r.em||r.ph?`<h2>CONTACT</h2><div class="links">${r.em?`<a href="mailto:${esc(r.em)}">${esc(r.em)}</a>`:""}${r.ph?`<a href="tel:${esc(r.ph)}">Call ${esc(r.ph)}</a>`:""}</div>`:""}
+  <h2>RECENT VOTES</h2>${mine.length?`<div class="log">${mine.slice(0,15).map(({v,k})=>`<div class="row"><span>${esc(v.bill)}: ${esc(v.title.length>90?v.title.slice(0,88)+"…":v.title)}<small>${esc(v.q||"")} · ${fmtD(v.date)}</small></span><span class="tag ${TAG[k][1]}">${TAG[k][0]}</span></div>`).join("")}</div>`:`<div class="empty">No recorded votes loaded yet. Many New Hampshire votes are voice votes with no names attached.</div>`}
+  <div class="links"><a href="https://open.pluralpolicy.com/${st.toLowerCase()}/legislators/">Find ${esc(r.n)} on Open States ↗</a></div>
+  <h2>WHO'S PAYING</h2><div class="empty">Not loaded yet. State campaign money is reported to the state, not the FEC.</div>`;
+}
+// ---- my reps ----
+function myReps(){
+  const s=store.home,me=store.me||{};if(!s)return"";
+  const hs=M.filter(m=>m.s===s&&m.c==="r").sort((a,b)=>a.d-b.d),ss=M.filter(m=>m.s===s&&m.c==="s");
+  const myH=hs.find(m=>String(m.d)===String(me.cd))||(hs.length===1?hs[0]:null);
+  let stateHTML="";
+  if(SLS[s]&&SL&&SL.st===s){const sd=[...new Set(SL.rows.filter(r=>r.c==="S").map(r=>r.d))].sort((a,b)=>a-b),hd=[...new Set(SL.rows.filter(r=>r.c==="H").map(r=>r.d))].sort();
+    const mySen=SL.rows.filter(r=>r.c==="S"&&r.d===me.ssd),myRep=SL.rows.filter(r=>r.c==="H"&&r.d===me.shd);
+    stateHTML=`<div class="pick"><label>State senate district<select id="ssd"><option value="">Pick</option>${sd.map(d=>`<option ${d===me.ssd?"selected":""}>${d}</option>`).join("")}</select></label>
+    <label>State house district<select id="shd"><option value="">Pick</option>${hd.map(d=>`<option ${d===me.shd?"selected":""}>${esc(d)}</option>`).join("")}</select></label></div>
+    ${mySen.length||myRep.length?`<div class="roster">${mySen.concat(myRep).map(slTile).join("")}</div>`:""}`}
+  else if(!SLS[s])stateHTML=`<p class="hint">State lawmakers for ${esc(SN[s])} aren't loaded yet.</p>`;
+  return`<h2>YOUR REPS</h2>
+  <form id="addr" class="addr"><input id="addrIn" placeholder="Your street address" autocomplete="street-address"><button class="vbtn" type="submit">FIND</button></form>
+  <div id="addrMsg" class="hint" hidden></div>
+  <div class="pick">${hs.length>1?`<label>U.S. House district<select id="cd"><option value="">Pick</option>${hs.map(m=>`<option value="${m.d}" ${String(m.d)===String(me.cd)?"selected":""}>District ${m.d}</option>`).join("")}</select></label>`:""}</div>
+  <div class="roster">${ss.concat(myH?[myH]:[]).map(tile).join("")}</div>${stateHTML}`;
+}
+function wireReps(){
+  const f=document.getElementById("addr");if(!f)return;
+  f.onsubmit=async e=>{e.preventDefault();const m=document.getElementById("addrMsg"),a=document.getElementById("addrIn").value.trim();m.hidden=false;if(!a){m.textContent="Type your street address, town and state.";return}
+    m.textContent="Looking up your districts…";
+    try{const r=await findDistricts(a);if(!r){m.textContent="Couldn't find that address. Try adding the town and ZIP code.";return}
+      store.home=r.st;store.me=Object.assign(store.me||{},{cd:r.cd,ssd:r.ssd,shd:r.shd,addr:r.label});save();ballot();
+      const m2=document.getElementById("addrMsg");if(m2){m2.hidden=false;m2.textContent="Found: "+r.label+". Your districts are filled in below."}}
+    catch(err){m.textContent="The address service didn't answer. Try again, or pick your districts below. They're on your voter registration card."}};
+  const set=(id,k)=>{const el=document.getElementById(id);if(el)el.onchange=()=>{store.me=Object.assign(store.me||{},{[k]:el.value});save();ballot()}};
+  set("cd","cd");set("ssd","ssd");set("shd","shd");
+}
+// Census Bureau geocoder (free, no key). JSONP so it works from a static site.
+function geocode(addr){return new Promise((res,rej)=>{const cb="gc"+Date.now(),s=document.createElement("script");const done=()=>{clearTimeout(t);delete window[cb];s.remove()};const t=setTimeout(()=>{done();rej(new Error("timeout"))},15000);window[cb]=d=>{done();res(d)};s.onerror=()=>{done();rej(new Error("load"))};s.src="https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?"+new URLSearchParams({address:addr,benchmark:"Public_AR_Current",vintage:"Current_Current",format:"jsonp",callback:cb});document.head.appendChild(s)})}
+async function findDistricts(addr){const d=await geocode(addr);const g=d&&d.result&&d.result.addressMatches&&d.result.addressMatches[0];if(!g)return null;const G=g.geographies,pick=re=>{const k=Object.keys(G).find(k=>re.test(k));return k&&G[k][0]};
+  const stF=G.States&&G.States[0],cdF=pick(/Congressional Districts/),up=pick(/Legislative Districts - Upper/),lo=pick(/Legislative Districts - Lower/);
+  const st=stF&&stF.STUSAB;if(!st||!SN[st])return null;const cdk=cdF&&Object.keys(cdF).find(k=>/^CD\d+$/.test(k));const cdn=cdk?parseInt(cdF[cdk],10):0;
+  return{st,cd:cdn>0&&cdn<98?String(cdn):"",ssd:up?String(parseInt(up.BASENAME,10)||up.BASENAME):"",shd:lo?lo.BASENAME:"",label:g.matchedAddress}}
+// ---- contact ----
+function contactBox(m,b){
+  const v=b&&store.v[b.id];
+  const msg=`Hello ${m.c==="s"?"Senator":"Representative"} ${m.l},\n\nI live in ${SN[m.s]} and I'm writing about ${b?b.num+", the "+b.short:"[the issue]"}. ${v==="Y"?"I support it and ask you to vote yes.":v==="N"?"I oppose it and ask you to vote no.":"Here is where I stand: [your view]."}\n\nThank you,\n[Your name and town]`;
+  return`<details class="contact"><summary>CONTACT ${esc(m.l.toUpperCase())}</summary>
+  <div class="links">${m.ph?`<a href="tel:${esc(m.ph)}">Call ${esc(m.ph)}</a>`:""}${m.cf||m.u?`<a href="${esc(m.cf||m.u)}">Email form ↗</a>`:""}</div>
+  <textarea rows="7">${esc(msg)}</textarea><button class="vbtn cp" type="button">COPY MESSAGE</button><span class="ok cpok" hidden> Copied. Paste it into the email form.</span></details>`;
+}
+function wireContact(){app.querySelectorAll(".contact").forEach(d=>{const b=d.querySelector(".cp");b.onclick=async()=>{try{await navigator.clipboard.writeText(d.querySelector("textarea").value);d.querySelector(".cpok").hidden=false}catch(e){d.querySelector("textarea").select()}}})}
+// ---- topics ----
+const topicChips=()=>`<div class="chips">${ALLT.map(t=>`<button class="chip2 tp ${(store.topics||[]).includes(t)?"on":""}" data-t="${t}">${t}</button>`).join("")}</div>`;
+function wireTopics(after){app.querySelectorAll(".tp").forEach(b=>b.onclick=()=>{const t=b.dataset.t,a=store.topics||[];store.topics=a.includes(t)?a.filter(x=>x!==t):a.concat(t);save();after()})}
+const follows=bid=>!(store.topics||[]).length||billTopics(bid).some(t=>store.topics.includes(t));
+function ballot(){
+  const s=store.home,voted=Object.keys(store.v).length;
+  if(!s){app.innerHTML=`<h1>How would you vote?</h1><p class="hint">Pick your state. Then vote on each bill and see who in your delegation agrees with you.</p>
+   <select id="hs"><option value="">Pick your state</option>${Object.entries(SN).sort((a,b)=>a[1].localeCompare(b[1])).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select>`;
+   document.getElementById("hs").onchange=e=>{store.home=e.target.value;save();ballot()};return}
+  const del=delegation(s);
+  app.innerHTML=`<h1>How would you vote?</h1><p class="hint">${esc(SN[s])} · ${voted} of ${BILLS.length} voted · <a href="#" id="chg">change state</a> · <a href="#" id="clr">reset</a></p>
+  ${myReps()}
+  <h2>DO THEY AGREE WITH YOU?</h2><div class="score">${del.map(scoreRow).join("")}</div>
+  <p class="hint" style="font-size:14px;margin-top:10px">Scores use each member's final Yes or No vote on the bill, from the official House and Senate roll calls.</p>
+  <h2>TOPICS I FOLLOW</h2>${topicChips()}
+  <h2>THE BILLS</h2><div class="log">${BILLS.filter(b=>follows(b.id)).map(b=>`<div class="ballot"><div><div class="t">${esc(b.short)}</div><div class="hint" style="margin:4px 0 0">${esc(b.one)}</div></div><div class="vb-wrap" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${vbtns(b)}<a href="#b-${b.id}" style="margin-left:auto">Read more ›</a></div></div>`).join("")}</div>`;
+  document.getElementById("chg").onclick=e=>{e.preventDefault();store.home="";save();ballot()};
+  document.getElementById("clr").onclick=e=>{e.preventDefault();store.v={};save();ballot()};
+  const re=()=>{const y=scrollY;ballot();scrollTo(0,y)};wireVotes(re);wireTopics(re);wireReps();
+  if(SLS[s]&&!(SL&&SL.st===s))loadSL(s).then(re);
+}
+function home(){
+  const fills={};Object.keys(SN).forEach(s=>fills[s]=stateFill(s));
+  let X0=1e9,Y0=1e9,X1=0,Y1=0;GRID.rows.forEach((r,y)=>{for(let x=0;x<GRID.W;x++)if(r.slice(x*2,x*2+2)!==".."){X0=Math.min(X0,x);X1=Math.max(X1,x);Y0=Math.min(Y0,y);Y1=Math.max(Y1,y)}});
+  const CW=X1-X0+1,CH=Y1-Y0+1,me=store.home;
+  app.innerHTML=`<h1>Tap your state</h1><div class="map"><canvas id="cv" role="img" aria-label="Map of the United States"></canvas></div>
+  <div class="key"><span><i style="background:var(--D)"></i>2 Dem senators</span><span><i style="background:var(--R)"></i>2 GOP senators</span><span><i class="split"></i>Split</span><span><i style="background:var(--I)"></i>Has an independent</span>${me?`<span><i style="background:var(--y)"></i>Your state</span>`:""}</div>
+  <select id="pick" aria-label="Or pick a state"><option value="">Or pick from a list</option>${Object.entries(SN).sort((a,b)=>a[1].localeCompare(b[1])).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select>`;
+  document.getElementById("pick").onchange=e=>{if(e.target.value)location.hash="s-"+e.target.value};
+  const cv=document.getElementById("cv"),wrap=cv.parentElement,cs=getComputedStyle(document.documentElement),col=v=>cs.getPropertyValue(v).trim();
+  const C={D:col("--D"),R:col("--R"),I:col("--I"),y:col("--y"),bg:col("--bg")};
+  const at=(x,y)=>{const r=GRID.rows[y];if(!r||x<0||x>=GRID.W)return"..";return r.slice(x*2,x*2+2)};
+  let hov="",px=4;
+  const draw=()=>{const dpr=devicePixelRatio||1;px=Math.min(12,wrap.clientWidth/CW);const w=Math.floor(CW*px),h=Math.floor(CH*px);cv.width=w*dpr;cv.height=h*dpr;cv.style.width=w+"px";cv.style.height=h+"px";
+    const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);const E=v=>Math.round(v*dpr)/dpr;
+    for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const s=at(x+X0,y+Y0);if(s==="..")continue;let f=fills[s];
+      f=s===hov?C.y:f==="split"?((x+y)%2?C.D:C.R):f.startsWith("var")?C[f.slice(6,7)]:f;g.fillStyle=f;g.fillRect(E(x*px),E(y*px),E((x+1)*px)-E(x*px),E((y+1)*px)-E(y*px))}
+    // state lines: pixel edges where two different states meet
+    g.fillStyle=C.bg;const lw=Math.max(1,px/4);
+    for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){const s=at(x+X0,y+Y0);if(s==="..")continue;
+      const r=at(x+X0+1,y+Y0),d=at(x+X0,y+Y0+1);
+      if(r!==".."&&r!==s)g.fillRect(E((x+1)*px-lw/2),E(y*px),lw,E((y+1)*px)-E(y*px)+.5);
+      if(d!==".."&&d!==s)g.fillRect(E(x*px),E((y+1)*px-lw/2),E((x+1)*px)-E(x*px)+.5,lw)}
+    if(me){g.strokeStyle=C.y;g.lineWidth=Math.max(1.5,px/2.5);g.beginPath();
+      for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){if(at(x+X0,y+Y0)!==me)continue;const L=x*px,T=y*px,R=L+px,B=T+px;
+        if(at(x+X0-1,y+Y0)!==me){g.moveTo(L,T);g.lineTo(L,B)}if(at(x+X0+1,y+Y0)!==me){g.moveTo(R,T);g.lineTo(R,B)}
+        if(at(x+X0,y+Y0-1)!==me){g.moveTo(L,T);g.lineTo(R,T)}if(at(x+X0,y+Y0+1)!==me){g.moveTo(L,B);g.lineTo(R,B)}}g.stroke()}};
+  const cell=e=>{const r=cv.getBoundingClientRect();const x=Math.floor((e.clientX-r.left)/px),y=Math.floor((e.clientY-r.top)/px);
+    let s=at(x+X0,y+Y0);if(s!=="..")return s;for(let k=1;k<=2;k++)for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){s=at(x+X0+dx*k,y+Y0+dy*k);if(s!=="..")return s}return""};
+  cv.onpointermove=e=>{const s=cell(e);if(s!==hov){hov=s;cv.style.cursor=s?"pointer":"default";draw()}};
+  cv.onpointerleave=()=>{hov="";draw()};
+  cv.onclick=e=>{const s=cell(e);if(s)location.hash="s-"+s};
+  const mapRO=new ResizeObserver(draw);mapRO.observe(wrap);
+}
+const tile=m=>`<a class="pl" href="#m-${esc(m.id)}"><span class="num">${esc(jersey(m))}</span>${ava(m)}<b>${esc(m.n)}</b></a>`;
+function state(s){
+  const ms=M.filter(m=>m.s===s),ss=ms.filter(m=>m.c==="s"),hs=ms.filter(m=>m.c==="r").sort((a,b)=>a.d-b.d);
+  app.innerHTML=`<h1>${esc(SN[s]||s)}</h1>${store.home===s?`<span class="hint">★ Your state</span>`:`<button class="btn" id="mine">★ MAKE THIS MY STATE</button>`}${ss.length?`<h2>SENATE</h2><div class="roster">${ss.map(tile).join("")}</div>`:""}<h2>HOUSE</h2><div class="roster">${hs.map(tile).join("")}</div><h1 style="margin-top:34px;font-size:clamp(16px,4vw,24px)">State legislature</h1><div id="sleg"><p class="hint">Loading…</p></div>`;
+  stateLeg(s,document.getElementById("sleg"));
+  const mb=document.getElementById("mine");if(mb)mb.onclick=()=>{store.home=s;save();location.hash="ballot"};
+}
+async function member(id){
+  const m=byId[id];if(!m){app.innerHTML="<p>Not found.</p>";return}
+  app.innerHTML=`<p class="hint">Loading…</p>`;
+  const[map,dn]=await Promise.all([mVotes(id),donorsOf(id)]);if(location.hash!=="#m-"+id)return;
+  const vs=Object.entries(map).map(([vid,k])=>({v:VI[vid],k})).filter(x=>x.v).sort((a,b)=>b.v.date.localeCompare(a.v.date)||b.v.id.localeCompare(a.v.id));
+  const key=vs.filter(x=>x.v.big||x.v.bill);
+  const wp=withParty(m,map),st=STATS[id];
+  const missed=vs.filter(x=>x.k==="X").length;
+  const spon=BILLS.filter(b=>b.sponsor===id);
+  const seasons=2026-(+m.since)+1;
+  const na='<b class="na">—</b>';
+  const pos=m.c==="s"?`Senator · ${esc(SN[m.s])}`:`Rep · ${esc(SN[m.s])}${m.d?" district "+m.d:""}`;
+  const T=dn&&dn.totals;
+  app.innerHTML=`<div class="card"><div class="top">${ava(m)}<div><div class="nm">${esc(m.n)}</div><div class="pos">${PN[m.p]} · ${pos}</div></div><div class="jersey">${esc(jersey(m))}<small>${m.c==="s"?"SENATE":"DIST"}</small></div></div>
+  <div class="stats">
+   <div><b>${Math.max(1,new Date().getFullYear()-(+m.since)+1)}</b><span>Years in ${m.c==="s"?"Senate":"House"}</span></div>
+   <div><b>${esc(m.end)}</b><span>Term ends</span></div>
+   ${(()=>{const{a,n}=agree(m);return n?`<div><b>${a}/${n}</b><span>Agrees with you</span></div>`:`<div><b class="na">—</b><span>Agrees with you <a href="#ballot">vote ›</a></span></div>`})()}
+   <div>${wp!=null?`<b>${wp}%</b>`:na}<span>Votes with party</span></div>
+   <div>${st?`<b>${st.sponsored}</b>`:na}<span>Bills sponsored this Congress</span></div>
+   <div>${st?`<b>${st.laws}</b>`:na}<span>Became law</span></div>
+  </div></div>
+  ${spon.length?`<h2>HIGHLIGHT</h2><div class="log">${spon.map(b=>`<a class="row" href="#b-${b.id}"><span>Sponsored ${esc(b.short)}<small>${b.num} · became law</small></span><span class="tag y">LAW</span></a>`).join("")}</div>`:""}
+  <h2>RECENT VOTES</h2>${key.length?`<div class="log">${key.slice(0,5).map(({v,k})=>`<a class="row" ${vLink(v)?`href="${vLink(v)}"`:""}><span>${esc(plainQ(v.q))}<small>${esc(vTitle(v))} · ${fmtD(v.date)}</small></span><span class="tag ${TAG[k][1]}">${TAG[k][0]}</span></a>`).join("")}</div>
+  <p class="hint" style="font-size:14px;margin-top:8px">${vs.length} roll calls this Congress · missed ${missed}</p>`:`<div class="empty">No votes loaded yet.</div>`}
+  <a class="btn" href="#h-${esc(m.id)}">FULL VOTE HISTORY ›</a>
+  <h2>WHO'S PAYING</h2>${T?`<div class="stats" style="border:2px solid var(--line)">
+    <div><b>${money(T.raised)}</b><span>Raised</span></div><div><b>${money(T.small)}</b><span>Small gifts (under $200)</span></div><div><b>${money(T.large)}</b><span>Larger gifts from people</span></div>
+    <div><b>${money(T.pacs)}</b><span>From PACs</span></div><div><b>${money(T.party+T.self)}</b><span>From party and self</span></div><div><b>${money(T.cash)}</b><span>Cash on hand</span></div></div>
+   <p class="hint" style="font-size:14px;margin-top:8px">${dn.cycle-1}–${dn.cycle} campaign${T.through?", through "+fmtD(T.through):""}. From FEC filings.</p>
+   <h2>TOP DONOR EMPLOYERS</h2>${dn.employers.length?`<div class="log">${dn.employers.slice(0,10).map(([e,t,c])=>`<div class="row"><span>${esc(e)}<small>${c} gift${c===1?"":"s"}</small></span><span class="tag o" style="color:var(--y)">${money(t)}</span></div>`).join("")}</div>
+   <p class="hint" style="font-size:14px;margin-top:8px">Money from people who listed this employer on their donation. Companies can't give to candidates directly.</p>`:`<div class="empty">No employer details filed for this campaign yet.</div>`}`
+  :`<div class="empty">${m.fec?"Not loaded yet. Donor data fills in over the next few days.":"No FEC campaign found for this member."}</div>`}
+  <div class="links">${m.fec?`<a href="https://www.fec.gov/data/candidate/${esc(m.fec)}/">FEC filings ↗</a>`:""}${m.os?`<a href="https://www.opensecrets.org/members-of-congress/summary?cid=${esc(m.os)}">OpenSecrets ↗</a>`:""}</div>
+  <h2>CONTACT</h2>${contactBox(m,null)}
+  <div class="links" style="margin-top:18px">${m.u?`<a href="${esc(m.u)}">Website ↗</a>`:""}<a href="https://www.congress.gov/member/${slug(m,"-")}/${esc(m.id)}">Congress.gov ↗</a>${m.ph?`<span style="padding:6px 0;color:var(--mute)">${esc(m.ph)}</span>`:""}</div>`;
+  wireContact();
+}
+function slug(m,sep){return(m.fl||m.n).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z ]/g,"").trim().replace(/\s+/g,sep)}
+async function memHistory(id,f){
+  const m=byId[id];if(!m){app.innerHTML="<p>Not found.</p>";return}
+  f=f||"key";
+  const map=await mVotes(id);
+  let vs=Object.entries(map).map(([vid,k])=>({v:VI[vid],k})).filter(x=>x.v).sort((a,b)=>b.v.date.localeCompare(a.v.date)||b.v.id.localeCompare(a.v.id));
+  const broke=x=>(x.k==="Y"||x.k==="N")&&x.v.pm[m.vp||m.p]&&x.v.pm[m.vp||m.p]!==x.k;
+  const F={key:x=>x.v.big||x.v.bill,all:()=>1,yes:x=>x.k==="Y",no:x=>x.k==="N",broke,missed:x=>x.k==="X"};
+  const cnt=Object.fromEntries(Object.entries(F).map(([k,fn])=>[k,vs.filter(fn).length]));
+  vs=vs.filter(F[f]);const shown=vs.slice(0,300);
+  const yr={};shown.forEach(x=>{const y=x.v.date.slice(0,4);(yr[y]=yr[y]||[]).push(x)});
+  app.innerHTML=`<a href="#m-${esc(m.id)}" class="hint">‹ ${esc(m.n)}</a><h1>Vote history</h1>
+  <div class="chips">${[["key","Bills"],["all","Every vote"],["yes","Yes"],["no","No"],["broke","Broke with party"],["missed","Missed"]].map(([k,t])=>`<button class="chip2 ${f===k?"on":""}" data-f="${k}">${t} <b>${cnt[k]}</b></button>`).join("")}</div>
+  ${Object.keys(yr).sort().reverse().map(y=>`<h2>${y}</h2><div class="log">${yr[y].map(({v,k})=>`<div class="row"><span>${vLink(v)?`<a href="${vLink(v)}">${esc(plainQ(v.q))}</a>`:esc(plainQ(v.q))}<small>${esc(vTitle(v))} · ${fmtD(v.date)}${broke({v,k})?` · <b style="color:var(--y)">broke with party</b>`:""} · <a href="${vSrc(v)}">official record ↗</a></small></span><span class="tag ${TAG[k][1]}">${TAG[k][0]}</span></div>`).join("")}</div>`).join("")||`<div class="empty">No votes here.</div>`}
+  ${vs.length>shown.length?`<p class="hint">Showing the latest ${shown.length} of ${vs.length}.</p>`:""}
+  <h2>OLDER VOTES</h2><div class="empty">This page covers the current Congress. Older votes are on these sites:
+   <div class="links"><a href="https://www.govtrack.us/congress/members/${slug(m,"_")}/${esc(m.gt)}">GovTrack votes ↗</a><a href="https://www.congress.gov/member/${slug(m,"-")}/${esc(m.id)}">Congress.gov ↗</a></div></div>`;
+  app.querySelectorAll(".chip2").forEach(b=>b.onclick=()=>memHistory(id,b.dataset.f));
+}
+async function bill(id){
+  const b=BB[id],info=BL[id];if(!b&&!info){app.innerHTML="<p>Not found.</p>";return}
+  app.innerHTML=`<p class="hint">Loading…</p>`;
+  const[list,extra]=await Promise.all([votesOnBill(id),b?null:J(`data/bills/${id}.json`)]);if(location.hash!=="#b-"+id)return;
+  const sp=byId[(b&&b.sponsor)||(info&&info.sponsor)];
+  const big=list.filter(v=>v.big);
+  const delegationHTML=store.home?`<h2>${esc(SN[store.home]).toUpperCase()} VOTED</h2><div class="log">${delegation(store.home).map(m=>{const bv=billVote(m,id),fv=bv&&bv.raw;return`<a class="row" href="#m-${esc(m.id)}"><span>${esc(m.n)}<small>${m.c==="s"?"Senate":"House"}${bv?" · "+bv.q:""}</small></span><span class="tag ${fv==="Yea"?"y":fv==="Nay"?"n":"o"}">${fv==="Yea"?"YES":fv==="Nay"?"NO":"NO VOTE YET"}</span></a>`}).join("")}</div>`:"";
+  const rollHTML=list.length?`<div class="feed">${(big.length?big:list).slice(0,8).map(v=>`<a class="ev" href="${vSrc(v)}"><span class="d">${fmtD(v.date)}</span><span>${v.ch==="s"?"Senate":"House"}: ${esc(plainQ(v.q))}<small>${v.t.Y}–${v.t.N} · ${esc(v.result)}</small></span></a>`).join("")}</div>`:"";
+  if(!b){
+    const sum=(extra&&extra.summary)||"";
+    app.innerHTML=`<div class="hint">${esc(info.num)}${info.law?" · became law":""}</div><h1 style="font-size:clamp(18px,4vw,26px)">${esc(info.title)}</h1>
+    ${info.latest?`<div class="you"><b>Latest:</b> ${esc(info.latest.t)} <span class="hint">(${fmtD(info.latest.d)})</span></div>`:""}
+    <h2>WHAT IT DOES</h2>${sum?`<div class="sec" style="white-space:pre-line">${esc(sum.length>1500?sum.slice(0,1500)+"…":sum)}</div><p class="hint" style="font-size:14px">Summary by the Congressional Research Service.</p>`:`<div class="empty">No official summary yet.</div>`}
+    ${rollHTML?`<h2>HOW IT MOVED</h2>${rollHTML}`:""}
+    <h2>HOW WOULD YOU VOTE?</h2>${vbtns({id})}
+    ${delegationHTML}
+    ${sp?`<h2>SPONSOR</h2><div class="roster">${tile(sp)}</div>`:""}
+    <h2>SOURCE</h2><div class="links"><a href="${cg((info.t[0]==="s"?"senate-":"house-")+({hr:"bill",s:"bill",hres:"resolution",sres:"resolution",hjres:"joint-resolution",sjres:"joint-resolution",hconres:"concurrent-resolution",sconres:"concurrent-resolution"}[info.t]||"bill"),info.n)}">Congress.gov ↗</a></div>`;
+    wireVotes(()=>{const y=scrollY;bill(id).then(()=>scrollTo(0,y))});return;
+  }
+  app.innerHTML=`<div class="hint">${b.num} · ${b.status||"became law"}</div><h1>${esc(b.short)}</h1><p style="font-size:19px">${esc((PLAIN[id]||b).one)}</p>
+  ${PLAIN[id]?`<div class="you"><b>What it means for you</b><ul>${PLAIN[id].you.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}
+  <h2>WHAT IT DOES</h2>
+  ${b.secs.length?b.secs.map(s=>`<div class="sec"><b>${s[0]}</b> ${s[1]}</div>`).join(""):`<div class="sec">${esc(b.one)}</div>`}
+  <div class="sides"><div><b>Supporters say</b>${b.pro}</div><div><b>Opponents say</b>${b.con}</div></div>
+  ${PLAIN[id]?`<h2>WORDS TO KNOW</h2><dl class="terms">${PLAIN[id].terms.map(t=>`<div><dt>${t[0]}</dt><dd>${t[1]}</dd></div>`).join("")}</dl>`:""}
+  <h2>HOW IT MOVED</h2><div class="feed">${(STEPS[id]||[]).map(st=>`<div class="ev"><span class="d">${fmtD(st[0])}</span><span>${st[1]}<small>${st[2]||""}</small></span></div>`).join("")}</div>
+  <h2>HOW WOULD YOU VOTE?</h2>${vbtns(b)}
+  ${delegationHTML}
+  ${sp?`<h2>SPONSOR</h2><div class="roster">${tile(sp)}</div>`:""}
+  ${store.home?`<h2>TELL YOUR REPS</h2>${delegation(store.home).filter(m=>m.c==="s"||!store.me||!store.me.cd||String(m.d)===String(store.me.cd)).map(m=>contactBox(m,b)).join("")}`:""}
+  <h2>SOURCE</h2><div class="links"><a href="${cg(b.t,b.n)}">Congress.gov ↗</a><a href="${cg(b.t,b.n,"/text")}">Full text ↗</a>${b.pl?`<a href="https://www.govinfo.gov/app/details/${b.pl}">GovInfo ↗</a>`:""}</div>
+  <p class="hint" style="margin-top:12px;font-size:14px">Plain-English summary written by hand. Check the official text.</p>`;
+  wireVotes(()=>{const y=scrollY;bill(id).then(()=>scrollTo(0,y))});wireContact();
+}
+async function updates(){
+  const s=store.home,al=store.alerts||{};
+  const del=s?delegation(s):[];const maps=s?Object.fromEntries(await Promise.all(del.map(async m=>[m.id,await mVotes(m.id)]))):{};
+  if(location.hash!=="#updates")return;
+  const mine=v=>{if(!s)return"";const ms=del.filter(m=>m.c===v.ch);let y=0,n=0,o=0;ms.forEach(m=>{const k=maps[m.id][v.id];if(!k)return;k==="Y"?y++:k==="N"?n++:o++});return y+n+o?`<span class="mine">${esc(SN[s])}: <b style="color:var(--ok)">${y} yes</b> · <b style="color:var(--R)">${n} no</b>${o?` · ${o} other`:""}</span>`:""};
+  const ev=VX.filter(v=>v.big&&(!(store.topics||[]).length||(v.bill&&billTopics(v.bill).some(t=>store.topics.includes(t))))).slice(0,30);
+  let recap="";
+  if(ev.length){const end=new Date(ev[0].date+"T12:00:00"),mon=new Date(end);mon.setDate(end.getDate()-((end.getDay()+6)%7));const ms=mon.toISOString().slice(0,10),wk=ev.filter(e=>e.date>=ms);
+    recap=`<div class="you"><b>Week of ${fmtD(ms)}</b> <span class="hint">(latest week with votes)</span><ul>${wk.slice(0,8).map(v=>`<li><b>${esc(vTitle(v))}</b>: ${v.ch==="s"?"Senate":"House"} vote to ${esc(plainQ(v.q).replace(/^Vote to /,"").toLowerCase())}, ${v.t.Y}–${v.t.N} (${esc(v.result.toLowerCase())}).${s?" "+mine(v).replace(/<[^>]+>/g,"")+".":""}</li>`).join("")}</ul></div>`}
+  app.innerHTML=`<h1>Updates</h1>
+  <h2>60-SECOND RECAP</h2>${recap||'<div class="empty">Nothing in your topics yet.</div>'}
+  <h2>TOPICS I FOLLOW</h2>${topicChips()}<p class="hint" style="font-size:14px">Pick topics to only see those bills. None picked shows everything.</p>
+  <h2>COMING UP</h2><div class="empty">Not loaded yet. Next step: the House and Senate floor schedules, so you see a bill a few days before it's voted on.</div>
+  <h2>NOTIFY ME</h2><div class="log">
+   ${[["before","Before a bill I voted on comes to the floor"],["result","When a vote happens, with how my members voted"],["new","When my members introduce a new bill"]].map(([k,t])=>`<label class="tg"><input type="checkbox" data-k="${k}" ${al[k]?"checked":""}>${t}</label>`).join("")}</div>
+  <div class="ok" id="ok" ${Object.values(al).some(Boolean)?"":"hidden"}>Saved on this device. Alerts aren't sent yet.</div>
+  ${s?"":`<p class="hint" style="margin-top:10px"><a href="#ballot">Set your state</a> to see how your own members voted on each update.</p>`}
+  <h2>RECENT VOTES ON BILLS</h2><div class="feed">${ev.map(v=>`<a class="ev" href="${vLink(v)||vSrc(v)}"><span class="d">${fmtD(v.date)}</span><span>${esc(vTitle(v))}<small>${v.ch==="s"?"Senate":"House"} · ${esc(plainQ(v.q))} · ${v.t.Y}–${v.t.N}</small></span>${mine(v)}</a>`).join("")||'<div class="empty">No votes loaded yet.</div>'}</div>`;
+  wireTopics(()=>{const y=scrollY;updates().then(()=>scrollTo(0,y))});
+  app.querySelectorAll(".tg input").forEach(c=>c.onchange=()=>{store.alerts=Object.assign(store.alerts||{},{[c.dataset.k]:c.checked});save();document.getElementById("ok").hidden=!Object.values(store.alerts).some(Boolean)});
+}
+const _wc=()=>setTimeout(wireContact,0);
+function route(){const h=location.hash.slice(1);document.getElementById("nmap").classList.toggle("on",h!=="ballot"&&h!=="updates");document.getElementById("nupd").classList.toggle("on",h==="updates");document.getElementById("nbal").classList.toggle("on",h==="ballot");
+  if(h==="ballot")ballot();else if(h==="updates")updates();else if(h.startsWith("s-"))state(h.slice(2));else if(h.startsWith("m-"))member(h.slice(2));else if(h.startsWith("l-")){const[a,b]=h.slice(2).split("-");legislator(a,b)}else if(h.startsWith("h-"))memHistory(h.slice(2));else if(h.startsWith("b-"))bill(h.slice(2));else home();scrollTo(0,0)}
+Promise.all([J("data/members.json"),J("data/votes/index.json"),J("data/meta.json"),J("data/member_stats.json"),J("data/bills.json")]).then(async([d,vx,meta,stats,bl])=>{
+  if(!d)throw new Error("members");
+  M=d.sort((a,b)=>a.l.localeCompare(b.l));byId=Object.fromEntries(M.map(m=>[m.id,m]));
+  VX=vx||[];VI=Object.fromEntries(VX.map(v=>[v.id,v]));META=meta||{};STATS=stats||{};BL=bl||{};
+  const up=[META.votes,META.members].filter(Boolean).sort().pop();
+  document.getElementById("foot").textContent=`Members and votes come from congress-legislators, the House Clerk and the Senate; bills from Congress.gov; money from the FEC; state lawmakers from Open States.${up?" Updated "+fmtD(up.slice(0,10))+".":""} A dash means not loaded yet.`;
+  await Promise.all(BILLS.map(b=>votesOnBill(b.id)));
+  addEventListener("hashchange",route);route()}).catch(()=>{app.innerHTML="<p>Couldn't load the data. Reload to try again.</p>"});
+}
+</script>
+
+</body></html>
