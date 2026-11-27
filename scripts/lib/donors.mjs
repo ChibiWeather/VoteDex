@@ -6,7 +6,7 @@ import { get, log, readJSON, writeJSON, setBudget, budgetLeft, OutOfBudget } fro
 const API = "https://api.open.fec.gov/v1";
 const HOST = "api.open.fec.gov";
 // Lines that say nothing about who the donor works for.
-const SKIP = /^(N\/?A|NONE|NOT EMPLOYED|UNEMPLOYED|RETIRED|SELF[- ]?EMPLOYED|SELF|HOMEMAKER|INFORMATION REQUESTED.*|REQUESTED|STUDENT|DISABLED|\s*)$/i;
+const SKIP = /^(N\/?A|N\.A\.?|NONE|NULL|UNKNOWN|NOT EMPLOYED|UNEMPLOYED|RETIRED|SELF[- ]?EMPLOYED|SELF|ENTREPRENEUR|HOMEMAKER|INFORMATION REQUESTED.*|REQUESTED|NOT PROVIDED|REFUSED|BEST EFFORTS?|STUDENT|DISABLED|\s*)$/i;
 
 export function currentCycle(d = new Date()) {
   const y = d.getUTCFullYear();
@@ -24,7 +24,7 @@ async function principalCommittee(cand, key) {
   return c ? c.committee_id : null;
 }
 
-export async function memberDonors(m, key, cache) {
+async function memberDonors(m, key, cache) {
   // A member can have several FEC ids (e.g. a House member now running for Senate).
   // Use the one with money in the most recent two-year cycle.
   const ids = [...new Set([...(m.fecs || []), m.fec].filter(Boolean))];
