@@ -21,7 +21,8 @@ a{color:inherit}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 .px{font-family:"Press Start 2P",monospace;letter-spacing:0;line-height:1.35}
 .wrap{max-width:900px;margin:0 auto;padding-left:max(4vw,16px,env(safe-area-inset-left,0px));padding-right:max(4vw,16px,env(safe-area-inset-right,0px))}
-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:16px 6px}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-block:16px 6px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+body{padding-bottom:env(safe-area-inset-bottom,0px)}
 .logo{font-size:clamp(14px,3.4vw,18px);text-decoration:none;color:var(--y)}
 nav{margin-left:auto;display:flex;gap:6px}
 .nav{font-size:10px;text-decoration:none;padding:9px 10px;border:2px solid var(--line)}
