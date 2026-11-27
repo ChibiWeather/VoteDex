@@ -53,7 +53,8 @@ export async function get(url, { type = "json", headers = {}, tries = 4, okMissi
       const ra = +res.headers.get("retry-after") || 0;
       await sleep(Math.max(ra * 1000, 2000 * 2 ** i)); continue;
     }
-    throw new Error(`${res.status} ${redact(url)}`);
+    let body = ""; try { body = (await res.text()).slice(0, 300); } catch {}
+    throw new Error(`${res.status} ${redact(url)} ${body}`);
   }
 }
 // Never print the API key in logs.

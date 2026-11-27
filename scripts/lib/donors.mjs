@@ -83,7 +83,7 @@ export async function refreshDonors(members, key, { budget = 850 } = {}) {
     } catch (e) {
       if (e instanceof OutOfBudget) break;
       if (/^(401|403)/.test(e.message)) { log("donors: the API key was rejected (check the DATA_GOV_API_KEY secret)"); break; }
-      status[m.id] = { ...(status[m.id] || {}), at: new Date().toISOString(), err: e.message.slice(0, 80) };
+      status[m.id] = { ...(status[m.id] || {}), at: new Date().toISOString(), err: e.message.slice(0, 400) };
       failed++;
     }
   }
