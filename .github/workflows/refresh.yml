@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "17 10 * * *"   # every day, about 5:17 AM Eastern
   workflow_dispatch:         # "Run workflow" button on the Actions tab
+    inputs:
+      parts:
+        description: "Only these parts (e.g. \"states portraits\"). Blank = everything."
+        required: false
+        default: ""
   push:
     branches: [main]
     paths-ignore: ["site/data/**", "site/img/**"]
@@ -36,7 +41,7 @@ jobs:
         env:
           DATA_GOV_API_KEY: ${{ secrets.DATA_GOV_API_KEY }}
           OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
-        run: node scripts/refresh.mjs
+        run: node scripts/refresh.mjs ${{ github.event.inputs.parts }}
       - name: Save data to the repo
         if: github.event_name != 'push'
         run: |
