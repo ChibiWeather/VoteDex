@@ -55,7 +55,9 @@ async function refreshStateVotes(st, key) {
   if (store.session !== session) Object.assign(store, { session, votes: {}, people: {} });
   let added = 0;
   try {
-    for (let page = 1; page <= 50; page++) {
+    const first = store.full ? 1 : (store.nextPage || 1);
+    for (let page = first; page < first + 50; page++) {
+      store.nextPage = page;
       let known = 0;
       const r = await get(`https://v3.openstates.org/bills?${new URLSearchParams({ jurisdiction: st, session, sort: "latest_action_desc", include: "votes", per_page: 20, page })}`, { headers: H });
       let newOnPage = 0;

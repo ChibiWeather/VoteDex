@@ -276,6 +276,8 @@ async function stateLeg(s,el){
   ${Object.keys(counties).sort().map(c=>`<details class="cty"><summary>${esc(c)} County <span class="hint">${counties[c].length}</span></summary><div class="roster">${counties[c].sort((a,b)=>parseInt(a.d.replace(/\D+/,""))-parseInt(b.d.replace(/\D+/,""))).map(slTile).join("")}</div></details>`).join("")}
   <p class="hint" style="font-size:14px;margin-top:8px">Names, parties and districts from Open States${META.states?", updated "+fmtD(META.states.slice(0,10)):""}.</p>`;
 }
+// NH House and Senate motion codes in plain English.
+function plainNH(q){q=(q||"").trim();const u=q.toUpperCase().replace(/\s+/g,"");return /^OTP\/?A/.test(u)?"Pass it with changes":/^OTP/.test(u)?"Pass it":/^ITL/.test(u)?"Kill it":/^(IS|INTERIMSTUDY)/.test(u)?"Send it to study":/TABLE/.test(u)?"Set it aside":/RECONSIDER/.test(u)?"Vote again":/CONCUR/.test(u)?"Agree to the other chamber's version":/PASSAGE|PASS/.test(u)?"Pass it":/OVERRIDE|VETO/.test(u)?"Override the veto":/REFER/.test(u)?"Send it to a committee":q}
 async function legislator(st,i){
   const L=await loadSL(st);const r=L&&L.rows[+i];if(!r){app.innerHTML="<p>Not found.</p>";return}
   const na='<b class="na">—</b>';
@@ -285,7 +287,7 @@ async function legislator(st,i){
   app.innerHTML=`<div class="card"><div class="top">${face(SIL,r.p,r.n)}<div><div class="nm">${esc(r.n)}</div><div class="pos">${PN[r.p]} · State ${r.c==="S"?"senator":"rep"} · ${esc(SN[st])}</div></div><div class="jersey">${esc(r.c==="S"?r.d:r.d.replace(/^\D+/,""))}<small>${r.c==="S"?"DIST":esc(r.d.replace(/\s*\d+$/,"").toUpperCase())}</small></div></div>
   <div class="stats"><div>${mine.length?`<b>${mine.length}</b>`:na}<span>Roll calls this session</span></div><div>${mine.length?`<b>${mine.length-cast}</b>`:na}<span>Missed or present</span></div><div>${na}<span>Bills sponsored</span></div></div></div>
   ${r.em||r.ph?`<h2>CONTACT</h2><div class="links">${r.em?`<a href="mailto:${esc(r.em)}">${esc(r.em)}</a>`:""}${r.ph?`<a href="tel:${esc(r.ph)}">Call ${esc(r.ph)}</a>`:""}</div>`:""}
-  <h2>RECENT VOTES</h2>${mine.length?`<div class="log">${mine.slice(0,15).map(({v,k})=>`<div class="row"><span>${esc(v.bill)}: ${esc(v.title.length>90?v.title.slice(0,88)+"…":v.title)}<small>${esc(v.q||"")} · ${fmtD(v.date)}</small></span><span class="tag ${TAG[k][1]}">${TAG[k][0]}</span></div>`).join("")}</div>`:`<div class="empty">No recorded votes loaded yet. Many New Hampshire votes are voice votes with no names attached.</div>`}
+  <h2>RECENT VOTES</h2>${mine.length?`<div class="log">${mine.slice(0,15).map(({v,k})=>`<div class="row"><span>${esc(v.bill)}: ${esc(v.title.length>90?v.title.slice(0,88)+"…":v.title)}<small>${esc(plainNH(v.q))}${v.result?" · "+(/pass/i.test(v.result)?"passed":"failed"):""} · ${fmtD(v.date)}</small></span><span class="tag ${TAG[k][1]}">${TAG[k][0]}</span></div>`).join("")}</div>`:`<div class="empty">No recorded votes loaded yet. Many New Hampshire votes are voice votes with no names attached.</div>`}
   <div class="links"><a href="https://open.pluralpolicy.com/${st.toLowerCase()}/legislators/">Find ${esc(r.n)} on Open States ↗</a></div>
   <h2>WHO'S PAYING</h2><div class="empty">Not loaded yet. State campaign money is reported to the state, not the FEC.</div>`;
 }
