@@ -113,6 +113,12 @@ dl.terms dd{margin:2px 0 0}
 .more summary{list-style:none;cursor:pointer}.more summary::-webkit-details-marker{display:none}.more[open] summary{display:none}
 .bk{font-size:11px;border:2px solid var(--ink);padding:10px 14px;margin-top:6px;box-shadow:3px 3px 0 var(--line);background:var(--bg)}
 .bk:active{transform:translate(2px,2px);box-shadow:none}
+.sl{margin-top:30px;border:2px solid var(--line);background:var(--panel);padding:0 14px}
+.sl>summary{cursor:pointer;list-style:none;padding:16px 0;font-size:13px;color:var(--y);display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+.sl>summary::-webkit-details-marker{display:none}
+.sl>summary::before{content:"▸";font-family:'Public Sans';font-size:16px}
+.sl[open]>summary::before{content:"▾"}
+.sl[open]{padding-bottom:14px}
 .contact{margin:8px 0}
 .contact summary{font-family:"Press Start 2P",monospace;font-size:11px;color:var(--y);padding:6px 0}
 .contact textarea{width:100%;margin-top:10px;font:inherit;font-size:16px;padding:10px;background:var(--panel);color:var(--ink);border:2px solid var(--line)}
@@ -315,6 +321,7 @@ async function findDistricts(addr){const d=await geocode(addr);const g=d&&d.resu
   const stF=G.States&&G.States[0],cdF=pick(/Congressional Districts/),up=pick(/Legislative Districts - Upper/),lo=pick(/Legislative Districts - Lower/);
   const st=stF&&stF.STUSAB;if(!st||!SN[st])return null;const cdk=cdF&&Object.keys(cdF).find(k=>/^CD\d+$/.test(k));const cdn=cdk?parseInt(cdF[cdk],10):0;
   return{st,cd:cdn>0&&cdn<98?String(cdn):"",ssd:up?String(parseInt(up.BASENAME,10)||up.BASENAME):"",shd:lo?lo.BASENAME:"",label:g.matchedAddress}}
+const fold=(t,html)=>`<details class="sl"><summary class="px">${t}</summary>${html}</details>`;
 // ---- contact ----
 function contactBox(m,b){
   const v=b&&store.v[b.id];
@@ -381,7 +388,7 @@ function home(){
 const tile=m=>`<a class="pl" href="#m-${esc(m.id)}"><span class="num">${esc(jersey(m))}</span>${ava(m)}<b>${esc(m.n)}</b></a>`;
 function state(s){
   const ms=M.filter(m=>m.s===s),ss=ms.filter(m=>m.c==="s"),hs=ms.filter(m=>m.c==="r").sort((a,b)=>a.d-b.d);
-  app.innerHTML=`<h1>${esc(SN[s]||s)}</h1>${store.home===s?`<span class="hint">★ Your state</span>`:`<button class="btn" id="mine">★ MAKE THIS MY STATE</button>`}${ss.length?`<h2>SENATE</h2><div class="roster">${ss.map(tile).join("")}</div>`:""}<h2>HOUSE</h2><div class="roster">${hs.map(tile).join("")}</div><h1 style="margin-top:34px;font-size:clamp(16px,4vw,24px)">State legislature</h1><div id="sleg"><p class="hint">Loading…</p></div>`;
+  app.innerHTML=`<h1>${esc(SN[s]||s)}</h1>${store.home===s?`<span class="hint">★ Your state</span>`:`<button class="btn" id="mine">★ MAKE THIS MY STATE</button>`}${ss.length?`<h2>SENATE</h2><div class="roster">${ss.map(tile).join("")}</div>`:""}<h2>HOUSE</h2><div class="roster">${hs.map(tile).join("")}</div><details class="sl"><summary class="px">STATE LEGISLATURE <span class="hint" style="font-family:'Public Sans';font-size:14px">${esc(SN[s]||s)} senate and house</span></summary><div id="sleg"><p class="hint">Loading…</p></div></details>`;
   stateLeg(s,document.getElementById("sleg"));
   const mb=document.getElementById("mine");if(mb)mb.onclick=()=>{store.home=s;save();location.hash="ballot"};
 }
@@ -468,12 +475,12 @@ async function bill(id){
   <h2>WHAT IT DOES</h2>
   ${b.secs.length?b.secs.map(s=>`<div class="sec"><b>${s[0]}</b> ${s[1]}</div>`).join(""):`<div class="sec">${esc(b.one)}</div>`}
   <div class="sides"><div><b>Supporters say</b>${b.pro}</div><div><b>Opponents say</b>${b.con}</div></div>
-  ${PLAIN[id]?`<h2>WORDS TO KNOW</h2><dl class="terms">${PLAIN[id].terms.map(t=>`<div><dt>${t[0]}</dt><dd>${t[1]}</dd></div>`).join("")}</dl>`:""}
+  ${PLAIN[id]?fold("WORDS TO KNOW",`<dl class="terms">${PLAIN[id].terms.map(t=>`<div><dt>${t[0]}</dt><dd>${t[1]}</dd></div>`).join("")}</dl>`):""}
   <h2>HOW IT MOVED</h2><div class="feed">${(STEPS[id]||[]).map(st=>`<div class="ev"><span class="d">${fmtD(st[0])}</span><span>${st[1]}<small>${st[2]||""}</small></span></div>`).join("")}</div>
   <h2>HOW WOULD YOU VOTE?</h2>${vbtns(b)}
   ${delegationHTML}
   ${sp?`<h2>SPONSOR</h2><div class="roster">${tile(sp)}</div>`:""}
-  ${store.home?`<h2>TELL YOUR REPS</h2>${delegation(store.home).filter(m=>m.c==="s"||!store.me||!store.me.cd||String(m.d)===String(store.me.cd)).map(m=>contactBox(m,b)).join("")}`:""}
+  ${store.home?fold("TELL YOUR REPS",delegation(store.home).filter(m=>m.c==="s"||!store.me||!store.me.cd||String(m.d)===String(store.me.cd)).map(m=>contactBox(m,b)).join("")):""}
   <h2>SOURCE</h2><div class="links"><a href="${cg(b.t,b.n)}">Congress.gov ↗</a><a href="${cg(b.t,b.n,"/text")}">Full text ↗</a>${b.pl?`<a href="https://www.govinfo.gov/app/details/${b.pl}">GovInfo ↗</a>`:""}</div>
   <p class="hint" style="margin-top:12px;font-size:14px">Plain-English summary written by hand. Check the official text.</p>`;
   wireVotes(()=>{const y=scrollY;bill(id).then(()=>scrollTo(0,y))});wireContact();
@@ -490,10 +497,9 @@ async function updates(){
   app.innerHTML=`<h1>Updates</h1>
   <h2>60-SECOND RECAP</h2>${recap||'<div class="empty">Nothing in your topics yet.</div>'}
   <h2>TOPICS I FOLLOW</h2>${topicChips()}<p class="hint" style="font-size:14px">Pick topics to only see those bills. None picked shows everything.</p>
-  <h2>COMING UP</h2><div class="empty">Not loaded yet. Next step: the House and Senate floor schedules, so you see a bill a few days before it's voted on.</div>
-  <h2>NOTIFY ME</h2><div class="log">
+  ${fold("NOTIFY ME",`<div class="log">
    ${[["before","Before a bill I voted on comes to the floor"],["result","When a vote happens, with how my members voted"],["new","When my members introduce a new bill"]].map(([k,t])=>`<label class="tg"><input type="checkbox" data-k="${k}" ${al[k]?"checked":""}>${t}</label>`).join("")}</div>
-  <div class="ok" id="ok" ${Object.values(al).some(Boolean)?"":"hidden"}>Saved on this device. Alerts aren't sent yet.</div>
+  <div class="ok" id="ok" ${Object.values(al).some(Boolean)?"":"hidden"}>Saved on this device. Alerts aren't sent yet.</div>`)}
   ${s?"":`<p class="hint" style="margin-top:10px"><a href="#ballot">Set your state</a> to see how your own members voted on each update.</p>`}
   <h2>RECENT VOTES ON BILLS</h2><div class="feed">${ev.map(v=>`<a class="ev" href="${vLink(v)||vSrc(v)}"><span class="d">${fmtD(v.date)}</span><span>${esc(vTitle(v))}<small>${v.ch==="s"?"Senate":"House"} · ${esc(plainQ(v.q))} · ${v.t.Y}–${v.t.N}</small></span>${mine(v)}</a>`).join("")||'<div class="empty">No votes loaded yet.</div>'}</div>`;
   wireTopics(()=>{const y=scrollY;updates().then(()=>scrollTo(0,y))});
