@@ -131,7 +131,7 @@ footer{color:var(--mute);font-size:13px;padding-block:6px 28px}
 <div class="wrap"><header><a class="logo px" href="#">VOTEDEX</a><nav><a class="nav px" id="nmap" href="#">MAP</a><a class="nav px" id="nbal" href="#ballot">BALLOT</a><a class="nav px" id="nupd" href="#updates">UPDATES</a></nav></header></div>
 <div class="wrap"><button class="bk px" id="bk" type="button" hidden>‹ BACK</button></div>
 <main class="wrap" id="app"><p class="hint">Loading…</p></main>
-<footer class="wrap" id="foot">Loading…</footer>
+<footer class="wrap" id="foot">Loading… · <a href="privacy.html">Privacy</a></footer>
 
 <script>
 {
@@ -523,7 +523,7 @@ Promise.all([J("data/members.json"),J("data/votes/index.json"),J("data/meta.json
   M=d.sort((a,b)=>a.l.localeCompare(b.l));byId=Object.fromEntries(M.map(m=>[m.id,m]));
   VX=vx||[];VI=Object.fromEntries(VX.map(v=>[v.id,v]));META=meta||{};STATS=stats||{};BL=bl||{};
   const up=[META.votes,META.members].filter(Boolean).sort().pop();
-  document.getElementById("foot").textContent=`Members and votes come from congress-legislators, the House Clerk and the Senate; bills from Congress.gov; money from the FEC; state lawmakers from Open States.${up?" Updated "+fmtD(up.slice(0,10))+".":""} A dash means not loaded yet.`;
+  document.getElementById("foot").textContent=`Members and votes come from congress-legislators, the House Clerk and the Senate; bills from Congress.gov; money from the FEC; state lawmakers from Open States.${up?" Updated "+fmtD(up.slice(0,10))+".":""} A dash means not loaded yet.`;document.getElementById("foot").insertAdjacentHTML("beforeend",' · <a href="privacy.html">Privacy</a>');
   await Promise.all(BILLS.map(b=>votesOnBill(b.id)));
   addEventListener("hashchange",route);route()}).catch(()=>{app.innerHTML="<p>Couldn't load the data. Reload to try again.</p>"});
 }
