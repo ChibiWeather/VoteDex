@@ -111,6 +111,8 @@ dl.terms dd{margin:2px 0 0}
 .addr{display:flex;gap:8px;margin:6px 0}
 .addr input{flex:1;font:inherit;font-size:16px;padding:10px 12px;background:var(--panel);color:var(--ink);border:2px solid var(--line)}
 .more summary{list-style:none;cursor:pointer}.more summary::-webkit-details-marker{display:none}.more[open] summary{display:none}
+.bk{font-size:11px;border:2px solid var(--ink);padding:10px 14px;margin-top:6px;box-shadow:3px 3px 0 var(--line);background:var(--bg)}
+.bk:active{transform:translate(2px,2px);box-shadow:none}
 .contact{margin:8px 0}
 .contact summary{font-family:"Press Start 2P",monospace;font-size:11px;color:var(--y);padding:6px 0}
 .contact textarea{width:100%;margin-top:10px;font:inherit;font-size:16px;padding:10px;background:var(--panel);color:var(--ink);border:2px solid var(--line)}
@@ -120,6 +122,7 @@ footer{color:var(--mute);font-size:13px;padding-block:6px 28px}
 </style>
 </head><body>
 <div class="wrap"><header><a class="logo px" href="#">VOTEDEX</a><nav><a class="nav px" id="nmap" href="#">MAP</a><a class="nav px" id="nbal" href="#ballot">BALLOT</a><a class="nav px" id="nupd" href="#updates">UPDATES</a></nav></header></div>
+<div class="wrap"><button class="bk px" id="bk" type="button" hidden>‹ BACK</button></div>
 <main class="wrap" id="app"><p class="hint">Loading…</p></main>
 <footer class="wrap" id="foot">Loading…</footer>
 
@@ -496,8 +499,13 @@ async function updates(){
   wireTopics(()=>{const y=scrollY;updates().then(()=>scrollTo(0,y))});
   app.querySelectorAll(".tg input").forEach(c=>c.onchange=()=>{store.alerts=Object.assign(store.alerts||{},{[c.dataset.k]:c.checked});save();document.getElementById("ok").hidden=!Object.values(store.alerts).some(Boolean)});
 }
+// Back button: steps back through pages viewed in this visit, or up to the parent page.
+const navStack=[location.hash];
+addEventListener("hashchange",()=>{const h=location.hash;if(navStack.length>1&&navStack[navStack.length-2]===h)navStack.pop();else navStack.push(h)});
+function parentOf(h){h=h.slice(1);if(h.startsWith("m-")){const m=byId[h.slice(2)];return m?"#s-"+m.s:"#"}if(h.startsWith("h-"))return"#m-"+h.slice(2);if(h.startsWith("l-"))return"#s-"+h.split("-")[1];if(h.startsWith("b-"))return"#ballot";return"#"}
+document.getElementById("bk").onclick=()=>{if(navStack.length>1)history.back();else location.hash=parentOf(location.hash)};
 const _wc=()=>setTimeout(wireContact,0);
-function route(){const h=location.hash.slice(1);document.getElementById("nmap").classList.toggle("on",h!=="ballot"&&h!=="updates");document.getElementById("nupd").classList.toggle("on",h==="updates");document.getElementById("nbal").classList.toggle("on",h==="ballot");
+function route(){const h=location.hash.slice(1);document.getElementById("bk").hidden=!h||h==="ballot"||h==="updates";document.getElementById("nmap").classList.toggle("on",h!=="ballot"&&h!=="updates");document.getElementById("nupd").classList.toggle("on",h==="updates");document.getElementById("nbal").classList.toggle("on",h==="ballot");
   if(h==="ballot")ballot();else if(h==="updates")updates();else if(h.startsWith("s-"))state(h.slice(2));else if(h.startsWith("m-"))member(h.slice(2));else if(h.startsWith("l-")){const[a,b]=h.slice(2).split("-");legislator(a,b)}else if(h.startsWith("h-"))memHistory(h.slice(2));else if(h.startsWith("b-"))bill(h.slice(2));else home();scrollTo(0,0)}
 Promise.all([J("data/members.json"),J("data/votes/index.json"),J("data/meta.json"),J("data/member_stats.json"),J("data/bills.json")]).then(async([d,vx,meta,stats,bl])=>{
   if(!d)throw new Error("members");
