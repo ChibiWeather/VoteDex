@@ -37,9 +37,20 @@ async function refreshStateVotes(st, key) {
   setBudget("v3.openstates.org", 60, 6500); // free tier: 10 per minute
   const H = { "X-API-KEY": key };
   const j = await get(`https://v3.openstates.org/jurisdictions/${st}?include=legislative_sessions`, { headers: H });
-  const sessions = (j.legislative_sessions || []).filter(s => s.start_date).sort((a, b) => a.start_date.localeCompare(b.start_date));
-  const session = sessions.pop()?.identifier;
+  // Newest session that has started. A brand-new session (e.g. one that opens in January)
+  // has no votes yet, so fall back to the one before it until the new one has some.
+  const today = new Date().toISOString().slice(0, 10);
+  const sessions = (j.legislative_sessions || []).filter(s => s.start_date && s.start_date <= today).sort((a, b) => a.start_date.localeCompare(b.start_date));
+  const prior = readJSON(`${st}_votes.json`, null);
+  let session = sessions.pop()?.identifier;
   if (!session) return;
+  if (prior && prior.session !== session && Object.keys(prior.votes || {}).length) {
+    const probe = await get(`https://v3.openstates.org/bills?${new URLSearchParams({ jurisdiction: st, session, include: "votes", per_page: 20 })}`, { headers: H });
+    if (!(probe.results || []).some(b => (b.votes || []).length)) session = prior.session;
+  } else if (!prior || !Object.keys(prior.votes || {}).length) {
+    const probe = await get(`https://v3.openstates.org/bills?${new URLSearchParams({ jurisdiction: st, session, include: "votes", per_page: 20 })}`, { headers: H });
+    if (!(probe.results || []).some(b => (b.votes || []).length) && sessions.length) session = sessions.pop().identifier;
+  }
   const store = readJSON(`${st}_votes.json`, { session, votes: {}, people: {} });
   if (store.session !== session) Object.assign(store, { session, votes: {}, people: {} });
   let added = 0;
