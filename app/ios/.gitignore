@@ -1,7 +1,6 @@
 App/build
 App/Pods
 App/output
-App/App/public
 DerivedData
 xcuserdata
 
@@ -9,5 +8,6 @@ xcuserdata
 capacitor-cordova-ios-plugins
 
 # Generated Config files
-App/App/capacitor.config.json
-App/App/config.xml
+
+# App/App/public, capacitor.config.json and config.xml are committed on purpose,
+# so the project opens and builds in Xcode without Node. Refresh them with `npm run sync`.
