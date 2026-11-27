@@ -12,6 +12,16 @@ import { buildZips } from "./lib/zips.mjs";
 const key = process.env.DATA_GOV_API_KEY || "";
 const osKey = process.env.OPENSTATES_API_KEY || "";
 const only = new Set(process.argv.slice(2));
+// "backfill" = the temporary evening run that fills in donors for members never fetched yet.
+// Once every member has donors it does nothing, and the single morning run handles the
+// election-aware donor schedule on its own.
+if (only.has("backfill")) {
+  const st = readJSON("donors/_status.json", {});
+  const left = readJSON("members.json", []).filter(m => (m.fec || (m.fecs || []).length) && !st[m.id]?.at).length;
+  if (!left) { log("donor backfill complete: nothing to do in the evening run"); process.exit(0); }
+  log(`donor backfill: ${left} members still need donors`);
+  only.delete("backfill"); only.add("donors");
+}
 const want = s => !only.size || only.has(s);
 const meta = readJSON("meta.json", {});
 const stamp = s => { meta[s] = new Date().toISOString(); };
