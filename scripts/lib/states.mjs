@@ -55,17 +55,19 @@ async function refreshStateVotes(st, key) {
   if (store.session !== session) Object.assign(store, { session, votes: {}, people: {} });
   let added = 0;
   try {
-    for (let page = 1; page <= 15; page++) {
+    for (let page = 1; page <= 50; page++) {
+      let known = 0;
       const r = await get(`https://v3.openstates.org/bills?${new URLSearchParams({ jurisdiction: st, session, sort: "latest_action_desc", include: "votes", per_page: 20, page })}`, { headers: H });
       let newOnPage = 0;
       for (const b of r.results || []) for (const v of b.votes || []) {
-        if (store.votes[v.id] || !(v.votes || []).length) continue;
+        if (store.votes[v.id]) { known++; continue; }
+        if (!(v.votes || []).length) continue;
         const counts = Object.fromEntries((v.counts || []).map(c => [opt(c.option), c.value]));
         store.votes[v.id] = { bill: b.identifier, title: b.title, date: (v.start_date || "").slice(0, 10), q: v.motion_text, result: v.result, ch: v.organization?.classification === "upper" ? "S" : "H", t: counts };
         for (const p of v.votes) { const pid = p.voter?.id; if (pid) (store.people[pid] = store.people[pid] || {})[v.id] = opt(p.option); }
         newOnPage++; added++;
       }
-      if (!newOnPage && page > 1) break; // reached votes we already have
+      if (known && !newOnPage) break; // reached votes we already have
       if (page >= (r.pagination?.max_page || 1)) break;
     }
   } catch (e) { if (!(e instanceof OutOfBudget)) log(`${st} votes: ${e.message}`); }
