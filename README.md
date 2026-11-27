@@ -1,4 +1,4 @@
-# Progress of Congress
+# VoteDex
 
 A plain-English look at how Congress and the New Hampshire legislature vote, who pays for their campaigns, and what bills mean for you.
 

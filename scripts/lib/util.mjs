@@ -21,7 +21,7 @@ export function writeJSON(rel, value) {
   return true;
 }
 
-const UA = "Mozilla/5.0 (compatible; ProgressOfCongress/1.0; +https://github.com)";
+const UA = "Mozilla/5.0 (compatible; VoteDex/1.0; +https://github.com)";
 
 // A per-host request budget so one run never blows through an API's hourly limit.
 const budgets = new Map();
