@@ -222,7 +222,7 @@ const mVotes=id=>cache.m[id]||(cache.m[id]=J(`data/votes/m/${id}.json`).then(x=>
 const bVotes=id=>cache.b[id]||(cache.b[id]=J(`data/votes/b/${id}.json`).then(x=>x||[]));
 const donorsOf=id=>cache.d[id]||(cache.d[id]=J(`data/donors/${id}.json`));
 // PACs, other politicians' PACs, and outside spending, with plain labels and FEC links.
-const KIND={lead:"PAC run by another politician",party:"Party committee",super:"Super PAC or hybrid PAC",pac:""};
+const KIND={lead:"PAC run by another politician",party:"Party committee",super:"Super PAC",pac:""};
 const fecC=id=>`https://www.fec.gov/data/committee/${esc(id)}/`;
 function seeAll(rows,row,n=5){const top=rows.slice(0,n),rest=rows.slice(n);return`<div class="log">${top.map(row).join("")}</div>${rest.length?`<details class="more"><summary class="btn">SEE ALL ${rows.length} ›</summary><div class="log" style="margin-top:10px">${rest.map((x,i)=>row(x,i+n)).join("")}</div></details>`:""}`}
 function moneyMore(dn){if(!dn.pacs)return`<p class="hint" style="font-size:14px">PAC names and outside spending fill in on the next data runs.</p>`;

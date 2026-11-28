@@ -108,7 +108,7 @@ async function pacMoney(committee, cand, cycle, key) {
     const [type, des, cands] = types[x.committee_id] || ["", "", []];
     if (cands.includes(cand) || des === "P" || des === "A") continue; // the member's own committees
     if (des === "J") { jfc += x.total; continue; }
-    const kind = /^[XYZ]$/.test(type) ? "party" : des === "D" ? "lead" : /^[OUVW]$/.test(type) ? "super" : "pac";
+    const kind = /^[XYZ]$/.test(type) ? "party" : des === "D" ? "lead" : type === "O" ? "super" : "pac";
     const pass = kind !== "party" && x.total > PAC_DIRECT_MAX ? 1 : 0;
     pacs.push([cleanName(x.committee_name || x.committee_id), Math.round(x.total), x.count, kind, x.committee_id, pass]);
   }
