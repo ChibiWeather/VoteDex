@@ -5,6 +5,7 @@ import { get, log, readJSON, writeJSON, setBudget, budgetLeft, OutOfBudget } fro
 
 const API = "https://api.open.fec.gov/v1";
 const HOST = "api.open.fec.gov";
+const FIRST = new Set((process.env.DONORS_FIRST || "NH").split(",")); // states loaded first when many are due (the owner's state)
 const V = 2; // bump when the file format gains fields, so everyone is fetched again
 // Lines that say nothing about who the donor works for.
 const SKIP = /^(N\/?A|N\.A\.?|NONE|NULL|UNKNOWN|NOT EMPLOYED|UNEMPLOYED|RETIRED|SELF[- ]?EMPLOYED|SELF|ENTREPRENEUR|HOMEMAKER|INFORMATION REQUESTED.*|REQUESTED|NOT PROVIDED|REFUSED|BEST EFFORTS?|STUDENT|DISABLED|\s*)$/i;
@@ -159,7 +160,7 @@ export async function refreshDonors(members, key, { budget = 850 } = {}) {
   const status = readJSON("donors/_status.json", {});
   // Oldest first; never-fetched members go first of all.
   const maxAge = maxAgeDays() * 864e5 - 2 * 3600e3; // a little slack so a daily run always counts
-  const queue = members.filter(m => (m.fec || (m.fecs || []).length) && (!status[m.id]?.at || status[m.id].err || (status[m.id].v || 1) < V || Date.now() - new Date(status[m.id].at) > maxAge)).sort((a, b) => (status[a.id]?.v || 0) - (status[b.id]?.v || 0) || (status[a.id]?.at || "").localeCompare(status[b.id]?.at || ""));
+  const queue = members.filter(m => (m.fec || (m.fecs || []).length) && (!status[m.id]?.at || status[m.id].err || (status[m.id].v || 1) < V || Date.now() - new Date(status[m.id].at) > maxAge)).sort((a, b) => (status[a.id]?.v || 0) - (status[b.id]?.v || 0) || (FIRST.has(b.s) - FIRST.has(a.s)) || (status[a.id]?.at || "").localeCompare(status[b.id]?.at || ""));
   let done = 0, failed = 0;
   const stopAt = Date.now() + 30 * 60e3; // never hold up the daily run for long
   for (const m of queue) {
