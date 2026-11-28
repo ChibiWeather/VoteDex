@@ -3,7 +3,6 @@ name: Refresh data and publish
 on:
   schedule:
     - cron: "17 10 * * *"   # every day, about 5:17 AM Eastern: everything
-    - cron: "17 22 * * *"   # temporary, about 5:17 PM Eastern: donor backfill only; does nothing once every member has donors (remove then)
   workflow_dispatch:         # "Run workflow" button on the Actions tab
     inputs:
       parts:
@@ -42,7 +41,7 @@ jobs:
         env:
           DATA_GOV_API_KEY: ${{ secrets.DATA_GOV_API_KEY }}
           OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
-        run: node scripts/refresh.mjs ${{ github.event.inputs.parts || (github.event.schedule == '17 22 * * *' && 'backfill') || '' }}
+        run: node scripts/refresh.mjs ${{ github.event.inputs.parts || '' }}
       - name: Save data to the repo
         if: github.event_name != 'push'
         run: |
