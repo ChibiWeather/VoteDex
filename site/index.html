@@ -221,6 +221,20 @@ const J=u=>fetch(BASE+u).then(r=>r.ok?r.json():null).catch(()=>null);
 const mVotes=id=>cache.m[id]||(cache.m[id]=J(`data/votes/m/${id}.json`).then(x=>x||{}));
 const bVotes=id=>cache.b[id]||(cache.b[id]=J(`data/votes/b/${id}.json`).then(x=>x||[]));
 const donorsOf=id=>cache.d[id]||(cache.d[id]=J(`data/donors/${id}.json`));
+// PACs, other politicians' PACs, and outside spending, with plain labels and FEC links.
+const KIND={lead:"PAC run by another politician",party:"Party committee",super:"Super PAC or hybrid PAC",pac:""};
+const fecC=id=>`https://www.fec.gov/data/committee/${esc(id)}/`;
+function seeAll(rows,row,n=5){const top=rows.slice(0,n),rest=rows.slice(n);return`<div class="log">${top.map(row).join("")}</div>${rest.length?`<details class="more"><summary class="btn">SEE ALL ${rows.length} ›</summary><div class="log" style="margin-top:10px">${rest.map((x,i)=>row(x,i+n)).join("")}</div></details>`:""}`}
+function moneyMore(dn){if(!dn.pacs)return`<p class="hint" style="font-size:14px">PAC names and outside spending fill in on the next data runs.</p>`;
+  const pacRow=([nm,t,c,k,id,pass],i)=>`<div class="row"><span>${i+1}. <a href="${fecC(id)}" style="color:inherit">${esc(nm)}</a><small>${[KIND[k],pass?"Mostly money from individual donors passed through this PAC":"",c+" payment"+(c===1?"":"s")].filter(Boolean).join(" · ")}</small></span><span class="tag o" style="color:var(--y)">${money(t)}</span></div>`;
+  const o=dn.outside||{for:[],against:[]},oRow=([nm,t,id],i)=>`<div class="row"><span>${i+1}. <a href="${fecC(id)}" style="color:inherit">${esc(nm)}</a></span><span class="tag o" style="color:var(--y)">${money(t)}</span></div>`;
+  const sum=a=>a.reduce((s,x)=>s+x[1],0);
+  return`<h2>TOP PACS AND GROUPS</h2>${dn.pacs.length?seeAll(dn.pacs,pacRow):`<div class="empty">No PAC money filed for this campaign yet.</div>`}
+  <p class="hint" style="font-size:14px;margin-top:8px">Money sent straight to the campaign by PACs, party committees and other politicians' PACs.${dn.jfc?` Another ${money(dn.jfc)} came through joint fundraising with other candidates.`:""} When one PAC's total is far above the $5,000 per election a PAC may give, the rest is individual donors' money the PAC collected and passed on.</p>
+  <h2>OUTSIDE SPENDING</h2>${o.for.length||o.against.length?`
+  ${o.for.length?`<p class="hint" style="margin:6px 0">Spent to help them: <b style="color:var(--ink)">${money(sum(o.for))}</b></p>${seeAll(o.for,oRow,3)}`:""}
+  ${o.against.length?`<p class="hint" style="margin:14px 0 6px">Spent against them: <b style="color:var(--ink)">${money(sum(o.against))}</b></p>${seeAll(o.against,oRow,3)}`:""}`:`<div class="empty">No outside spending reported${o.cycle?` for ${o.cycle-1}–${o.cycle}`:""}.</div>`}
+  <p class="hint" style="font-size:14px;margin-top:8px">Ads and mail paid for by super PACs and other groups${o.cycle?`, ${o.cycle-1}–${o.cycle}`:""}. This money doesn't go to the campaign. Some groups ("dark money" nonprofits) don't have to say who funds them, so their donors can't be shown anywhere.</p>`}
 const TAG={Y:["YES","y"],N:["NO","n"],P:["PRESENT","o"],X:["MISSED","o"]};
 const billIds=id=>[id].concat((BB[id]&&BB[id].rel)||[]);
 async function votesOnBill(id){const a=(await Promise.all(billIds(id).map(bVotes))).flat().sort((x,y)=>y.date.localeCompare(x.date)||y.id.localeCompare(x.id));BVR[id]=a;return a}
@@ -447,12 +461,13 @@ async function member(id){
   <h2>WHO'S PAYING</h2>${T?`<div class="stats" style="border:2px solid var(--line)">
     <div><b>${money(T.raised)}</b><span>Raised</span></div><div><b>${money(T.small)}</b><span>Small gifts (under $200)</span></div><div><b>${money(T.large)}</b><span>Larger gifts from people</span></div>
     <div><b>${money(T.pacs)}</b><span>From PACs</span></div><div><b>${money(T.party+T.self)}</b><span>From party and self</span></div><div><b>${money(T.cash)}</b><span>Cash on hand</span></div></div>
-   <p class="hint" style="font-size:14px;margin-top:8px">${dn.cycle-1}–${dn.cycle} campaign. <b style="color:var(--ink)">As of the ${T.through?fmtD(T.through)+" ":""}FEC filing</b>${dn.asOf?", checked "+fmtD(dn.asOf):""}.</p>
+   <p class="hint" style="font-size:14px;margin-top:8px">${T.raised>0?`${Math.round(T.small/T.raised*100)}% came in small gifts under $200, ${Math.round(T.large/T.raised*100)}% in bigger gifts from people, ${Math.round(T.pacs/T.raised*100)}% from PACs. `:""}${dn.cycle-1}–${dn.cycle} campaign. <b style="color:var(--ink)">As of the ${T.through?fmtD(T.through)+" ":""}FEC filing</b>${dn.asOf?", checked "+fmtD(dn.asOf):""}.</p>
    <h2>TOP DONORS BY EMPLOYER</h2>${dn.employers.length?(()=>{const row=([e,t,c],i)=>`<div class="row"><span>${i+1}. ${esc(e)}<small>${c} gift${c===1?"":"s"}</small></span><span class="tag o" style="color:var(--y)">${money(t)}</span></div>`;const top=dn.employers.slice(0,5),rest=dn.employers.slice(5);
     return`<div class="log">${top.map(row).join("")}</div>${rest.length?`<details class="more"><summary class="btn">SEE ALL ${dn.employers.length} ›</summary><div class="log" style="margin-top:10px">${rest.map((x,i)=>row(x,i+5)).join("")}</div></details>`:""}
-   <p class="hint" style="font-size:14px;margin-top:8px">Money from people who listed this employer on their donation. Companies can't give to candidates directly.</p>`})():`<div class="empty">No employer details filed for this campaign yet.</div>`}`
+   <p class="hint" style="font-size:14px;margin-top:8px">Money from people who listed this employer on their donation. Companies can't give to candidates directly.</p>`})():`<div class="empty">No employer details filed for this campaign yet.</div>`}
+   ${moneyMore(dn)}`
   :`<div class="empty">${m.fec?"Not loaded yet. Donor data fills in over the next few days.":"No FEC campaign found for this member."}</div>`}
-  <div class="links">${m.fec?`<a href="https://www.fec.gov/data/candidate/${esc(m.fec)}/">FEC filings ↗</a>`:""}${m.os?`<a href="https://www.opensecrets.org/members-of-congress/summary?cid=${esc(m.os)}">OpenSecrets ↗</a>`:""}</div>
+  <div class="links">${dn&&dn.committee?`<a href="https://www.fec.gov/data/committee/${esc(dn.committee)}/?cycle=${dn.cycle}">FEC filings for this campaign ↗</a>`:m.fec?`<a href="https://www.fec.gov/data/candidate/${esc(m.fec)}/">FEC filings ↗</a>`:""}${m.os?`<a href="https://www.opensecrets.org/members-of-congress/summary?cid=${esc(m.os)}">OpenSecrets ↗</a>`:""}</div>
   <h2>CONTACT</h2>${contactBox(m,null)}
   <div class="links" style="margin-top:18px">${m.u?`<a href="${esc(m.u)}">Website ↗</a>`:""}<a href="https://www.congress.gov/member/${slug(m,"-")}/${esc(m.id)}">Congress.gov ↗</a>${m.ph?`<span style="padding:6px 0;color:var(--mute)">${esc(m.ph)}</span>`:""}</div>`;
   wireContact();

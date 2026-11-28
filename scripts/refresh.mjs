@@ -17,7 +17,7 @@ const only = new Set(process.argv.slice(2));
 // election-aware donor schedule on its own.
 if (only.has("backfill")) {
   const st = readJSON("donors/_status.json", {});
-  const left = readJSON("members.json", []).filter(m => (m.fec || (m.fecs || []).length) && !st[m.id]?.at).length;
+  const left = readJSON("members.json", []).filter(m => (m.fec || (m.fecs || []).length) && (!st[m.id]?.at || (st[m.id].v || 1) < 2)).length;
   if (!left) { log("donor backfill complete: nothing to do in the evening run"); process.exit(0); }
   log(`donor backfill: ${left} members still need donors`);
   only.delete("backfill"); only.add("donors");
