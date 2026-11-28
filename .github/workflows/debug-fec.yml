@@ -1,0 +1,11 @@
+name: Debug FEC (temporary)
+on: workflow_dispatch
+jobs:
+  d:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - run: node scripts/tmp/debug-fec.mjs
+        env: { DATA_GOV_API_KEY: "${{ secrets.DATA_GOV_API_KEY }}" }
