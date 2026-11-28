@@ -223,6 +223,7 @@ const bVotes=id=>cache.b[id]||(cache.b[id]=J(`data/votes/b/${id}.json`).then(x=>
 const donorsOf=id=>cache.d[id]||(cache.d[id]=J(`data/donors/${id}.json`));
 // PACs, other politicians' PACs, and outside spending, with plain labels and FEC links.
 const KIND={lead:"PAC run by another politician",party:"Party committee",super:"Super PAC",pac:""};
+const pct=(a,b)=>{const v=a/b*100;return v>0&&v<1?"under 1%":Math.round(v)+"%"};
 const fecC=id=>`https://www.fec.gov/data/committee/${esc(id)}/`;
 function seeAll(rows,row,n=5){const top=rows.slice(0,n),rest=rows.slice(n);return`<div class="log">${top.map(row).join("")}</div>${rest.length?`<details class="more"><summary class="btn">SEE ALL ${rows.length} ›</summary><div class="log" style="margin-top:10px">${rest.map((x,i)=>row(x,i+n)).join("")}</div></details>`:""}`}
 function moneyMore(dn){if(!dn.pacs)return`<p class="hint" style="font-size:14px">PAC names and outside spending fill in on the next data runs.</p>`;
@@ -461,7 +462,7 @@ async function member(id){
   <h2>WHO'S PAYING</h2>${T?`<div class="stats" style="border:2px solid var(--line)">
     <div><b>${money(T.raised)}</b><span>Raised</span></div><div><b>${money(T.small)}</b><span>Small gifts (under $200)</span></div><div><b>${money(T.large)}</b><span>Larger gifts from people</span></div>
     <div><b>${money(T.pacs)}</b><span>From PACs</span></div><div><b>${money(T.party+T.self)}</b><span>From party and self</span></div><div><b>${money(T.cash)}</b><span>Cash on hand</span></div></div>
-   <p class="hint" style="font-size:14px;margin-top:8px">${T.raised>0?`${Math.round(T.small/T.raised*100)}% came in small gifts under $200, ${Math.round(T.large/T.raised*100)}% in bigger gifts from people, ${Math.round(T.pacs/T.raised*100)}% from PACs. `:""}${dn.cycle-1}–${dn.cycle} campaign. <b style="color:var(--ink)">As of the ${T.through?fmtD(T.through)+" ":""}FEC filing</b>${dn.asOf?", checked "+fmtD(dn.asOf):""}.</p>
+   <p class="hint" style="font-size:14px;margin-top:8px">${T.raised>0?`${pct(T.small,T.raised)} came in small gifts under $200, ${pct(T.large,T.raised)} in bigger gifts from people, ${pct(T.pacs,T.raised)} from PACs. `:""}${dn.cycle-1}–${dn.cycle} campaign. <b style="color:var(--ink)">As of the ${T.through?fmtD(T.through)+" ":""}FEC filing</b>${dn.asOf?", checked "+fmtD(dn.asOf):""}.</p>
    <h2>TOP DONORS BY EMPLOYER</h2>${dn.employers.length?(()=>{const row=([e,t,c],i)=>`<div class="row"><span>${i+1}. ${esc(e)}<small>${c} gift${c===1?"":"s"}</small></span><span class="tag o" style="color:var(--y)">${money(t)}</span></div>`;const top=dn.employers.slice(0,5),rest=dn.employers.slice(5);
     return`<div class="log">${top.map(row).join("")}</div>${rest.length?`<details class="more"><summary class="btn">SEE ALL ${dn.employers.length} ›</summary><div class="log" style="margin-top:10px">${rest.map((x,i)=>row(x,i+5)).join("")}</div></details>`:""}
    <p class="hint" style="font-size:14px;margin-top:8px">Money from people who listed this employer on their donation. Companies can't give to candidates directly.</p>`})():`<div class="empty">No employer details filed for this campaign yet.</div>`}
