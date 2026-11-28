@@ -1,7 +1,7 @@
-import { memberDonors } from "../lib/donors.mjs";
+import { memberDonors, saveCommitteeTypes } from "../lib/donors.mjs";
 import { readJSON } from "../lib/util.mjs";
 const M = readJSON("members.json", []);
-for (const id of ["G000583", "S001176", "S001181"]) {
+for (const id of ["S001181", "P000614", "O000172"]) {
   const m = M.find(x => x.id === id);
   const d = await memberDonors(m, process.env.DATA_GOV_API_KEY, {});
   console.log("\nQQ", m.n, d.cycle, d.committee, "jfc", d.jfc);

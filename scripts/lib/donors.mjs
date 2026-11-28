@@ -93,8 +93,8 @@ async function committeeTypes(ids, key) {
 export function saveCommitteeTypes() { if (CT) writeJSON("donors/_committees.json", CT); }
 
 // A PAC can give a candidate at most $5,000 per election (primary, general, maybe a runoff).
-// Anything well past that from one PAC was passed through from individual donors ("earmarked").
-const PAC_DIRECT_MAX = 15000;
+// Anything well past that (over $20,000 in one two-year cycle) from one PAC was passed through from individual donors ("earmarked").
+const PAC_DIRECT_MAX = 20000; // with room for runoffs and late debt payments
 const PLATFORM = /^(ACTBLUE|WINRED)\b/i;
 
 // Money other committees sent this campaign, by name: PACs, other politicians' PACs, party.
@@ -124,7 +124,7 @@ async function outsideMoney(cand, cycle, key) {
   if (!rows.length) { rows = await get1(cycle - 2); used = cycle - 2; }
   const by = { S: new Map(), O: new Map() };
   for (const x of rows) {
-    const m = by[x.support_oppose_indicator]; if (!m || !(x.total > 0)) continue;
+    const m = by[x.support_oppose_indicator]; if (!m || !(x.total > 0) || !x.committee_id) continue;
     const e = m.get(x.committee_id) || [cleanName(x.committee_name || x.committee_id), 0, x.committee_id];
     e[1] += x.total; m.set(x.committee_id, e);
   }
@@ -132,7 +132,7 @@ async function outsideMoney(cand, cycle, key) {
   return { cycle: used, for: list(by.S), against: list(by.O) };
 }
 
-const cleanName = s => titleCase(s.replace(/\bPOLITICAL ACTION COMMITTEE\b/gi, "PAC").replace(/\s+/g, " ").trim());
+const cleanName = s => titleCase(String(s || "Unnamed group").replace(/\bPOLITICAL ACTION COMMITTEE\b/gi, "PAC").replace(/\s+/g, " ").trim());
 const KEEP_UPPER = /^(LLC|LLP|LP|INC|PAC|USA|US|UBS|IBM|AT&T|BNSF|CVS|UPS|NBC|CBS|ABC|GE|JP|DC|NH|NY|II|III|IV|AFL-CIO|SEIU|AFSCME|NEA|UAW|IBEW)$/;
 function titleCase(s) {
   return s.toLowerCase().replace(/[a-z0-9&'.-]+/g, w => KEEP_UPPER.test(w.toUpperCase()) ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1));
